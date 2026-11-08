@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "257c9575-7255-4082-99ec-f71f528ff468",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/dataflow-receipt-20261107-163430/candidate.json",
+  "output": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/dataflow-receipt-20261107-163430/dataflow-receipt.html",
+  "specification": {
+    "sha256": "6fe209b11297d3df63b784e2714b94c459477e1b5ac9044f6e43ee4e84dd6ca6",
+    "bytes": 4579
+  },
+  "artifact": {
+    "sha256": "786d9c8a875bc1be2c925596280b8e8b6e67c9ab47bddb187b3d127828d9baf0",
+    "bytes": 760330
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "7b31dff2-25af-4032-987d-247ff18b7731",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/sequence-plan-run-20261107-163430/candidate.json",
+  "output": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/sequence-plan-run-20261107-163430/sequence-plan-run.html",
+  "specification": {
+    "sha256": "d67d2278ecb29792d2761fbf36356762b041d94f8631b575f2beaf24b8e27d21",
+    "bytes": 4517
+  },
+  "artifact": {
+    "sha256": "3a4d5892b6821d1a21c02accec1f5664731c175d7a798e375e710be77fb65978",
+    "bytes": 761600
+  }
+}

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>API · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html">Overview</a>
+    <a class="wd-link" href="setup.html">Setup</a>
+    <a class="wd-link" href="how-it-works.html">How it works</a>
+    <a class="wd-link" href="security.html">Security</a>
+    <a class="wd-link" href="api.html" aria-current="page">API</a>
+    <a class="wd-link" href="demo.html">Demo script</a>
+    <a class="wd-link" href="diagrams.html">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>API</h1>
+    <p class="wd-lead">The eight HTTP routes, their shapes and errors, and the receipt verification CLI.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> No container or VM runs, and the app makes no calls to Vultr or any other external service. Results such as "blocked", "OOM-killed" and "destroyed" come from software rules in <code>MockSandbox</code>; they are not evidence of real isolation.</p>
+
+  <!-- workdocs:begin id=kind -->
+  <section id="kind">
+    <h2>Interface type</h2>
+    <p>HTTP + JSON through Next.js App Router route handlers in <code>src/app/api/</code>. There is no OpenAPI or GraphQL schema and no user accounts. Callers are identified by a <strong>session principal</strong>: <code>POST /api/session</code> sets an HttpOnly, SameSite=Strict, HMAC-signed cookie <code>pb_session</code>, and every route except status, public key and session needs it. When <code>PROOFBOX_DEMO_TOKEN</code> is set, starting a session needs header <code>x-proofbox-token</code>; the token is not an identity. In local mode every route answers only loopback <code>Host</code> headers; cross-origin POSTs are refused. Every response sets <code>cache-control: no-store</code> (<code>src/lib/http.ts</code>). There is also a CLI, <code>npm run verify-receipt</code> (<code>scripts/verify-receipt.mjs</code>). In mock mode no endpoint calls Vultr.</p>
+    <p class="wd-source">Source: <code>src/app/api/*/route.ts</code>, <code>src/lib/access.ts</code>, <code>src/lib/http.ts</code>, <code>package.json</code></p>
+  </section>
+  <!-- workdocs:end id=kind -->
+
+  <!-- workdocs:begin id=endpoints -->
+  <section id="endpoints">
+    <h2>Endpoints</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Method + path</th><th>Purpose</th><th>Auth / limits</th><th>File</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /api/status</code></td><td>Mode, llm, sandbox, default limits, egress allowlist, slot stats, <code>access</code> (exposure, <code>tokenRequired</code>), <code>adhocExecToken</code> (kept for older clients)</td><td>no session</td><td><code>src/app/api/status/route.ts</code></td></tr>
+        <tr><td><code>POST /api/session</code></td><td>Start a session (new principal, cookie <code>pb_session</code>); a still-valid session is returned as is</td><td><code>x-proofbox-token</code> when a token is set; 60 new sessions/min in total, 10/min per IP with a trusted proxy</td><td><code>src/app/api/session/route.ts</code></td></tr>
+        <tr><td><code>GET /api/session</code></td><td>The current session, or 401</td><td>cookie</td><td><code>src/app/api/session/route.ts</code></td></tr>
+        <tr><td><code>POST /api/chat</code></td><td>Plan a task (through <code>enforcePolicy</code>); runs nothing; the plan is owned by the caller</td><td>session; 20/min per principal</td><td><code>src/app/api/chat/route.ts</code></td></tr>
+        <tr><td><code>POST /api/runs</code></td><td>Start one of the caller's plans by <code>planId</code>, once, in the background</td><td>session; 10/min and 2 active runs per principal; 8 running runs in total</td><td><code>src/app/api/runs/route.ts</code></td></tr>
+        <tr><td><code>GET /api/runs</code></td><td>The caller's recent run summaries</td><td>session; only own runs</td><td><code>src/app/api/runs/route.ts</code></td></tr>
+        <tr><td><code>GET /api/runs/:id</code></td><td>Full run: steps, receipts, timeline</td><td>session; owner only (404 otherwise)</td><td><code>src/app/api/runs/[id]/route.ts</code></td></tr>
+        <tr><td><code>POST /api/runs/:id/confirm</code></td><td>Approve or deny a waiting step, once</td><td>session; owner only (404 otherwise)</td><td><code>src/app/api/runs/[id]/confirm/route.ts</code></td></tr>
+        <tr><td><code>POST /api/sandbox/exec</code></td><td>One-off exec, returns a receipt (no <code>submit</code>)</td><td>session; <code>SANDBOX_EXEC_PER_MINUTE</code> (20) per principal and per trusted IP; waits up to <code>SANDBOX_EXEC_WAIT_MS</code> (5 s) for a fair slot, then 429</td><td><code>src/app/api/sandbox/exec/route.ts</code></td></tr>
+        <tr><td><code>GET /api/receipts/public-key</code></td><td>Ed25519 public key for verifying receipts</td><td>no session</td><td><code>src/app/api/receipts/public-key/route.ts</code></td></tr>
+      </tbody>
+    </table></div>
+    <p class="wd-source">Source: the route files listed (every <code>route.ts</code> under <code>src/app/api/</code>), <code>src/lib/config.ts</code></p>
+  </section>
+  <!-- workdocs:end id=endpoints -->
+
+  <!-- workdocs:begin id=shapes -->
+  <section id="shapes">
+    <h2>Request and response</h2>
+    <p>Examples marked <strong>captured</strong> come from a local mock server on 2026-11-07 (ids and keys shortened). Examples marked <strong>hand-written</strong> follow <code>src/lib/types.ts</code> and the route files; <code>…</code> marks omitted parts.</p>
+    <h3><code>GET /api/status</code> (captured)</h3>
+<pre><code>{ "mode": "mock", "llm": "mock-llm (templates, no network)", "sandbox": "mock",
+  "limits": { "timeoutMs": 5000, "memoryMb": 256 },
+  "egressAllowlist": ["shop.example.com", "example.com", "docs.example.com"],
+  "sandboxes": { "active": 0, "queued": 0, "max": 3, "perPrincipal": 2, "maxQueued": 12,
+                 "principalsWaiting": 0, "principalsActive": 0 },
+  "access": { "exposure": "local", "tokenRequired": false,
+              "session": "cookie pb_session (POST /api/session)", "trustProxyHops": 0 },
+  "adhocExecToken": false }</code></pre>
+    <h3><code>POST /api/session</code> (captured, cookie value shortened)</h3>
+<pre><code>// request: {} ; header x-proofbox-token only when the server has a token
+// 200, plus  set-cookie: pb_session=pb1.pr_…; Path=/; Expires=…; Max-Age=43200; HttpOnly; SameSite=strict  (+ Secure in public mode)
+{ "session": { "principal": "pr_a8890e8b…", "expiresAt": "…", "exposure": "local", "tokenRequired": false } }
+// 401 { "error": "missing or wrong x-proofbox-token", "code": "token_required", "tokenRequired": true }</code></pre>
+    <h3><code>POST /api/chat</code> (hand-written)</h3>
+<pre><code>// request: { "message": string }  (required, at most 20000 characters)
+{ "message": "compute 6*7" }
+// 200
+{ "reply": "… 3 step(s) — each runs in its own sandbox that is destroyed afterwards.",
+  "plan": { "id": "plan_…", "intent": "code", "title": "…", "summary": "…", "planner": "mock-llm (templates, no network)",
+            "egressAllowlist": [], "createdAt": "…",
+            "steps": [ { "id": "s1", "kind": "code", "title": "Run code in sandbox", "code": "print(6*7)", … },
+                       { "id": "s2", "kind": "code", "title": "Containment probe", "probe": true, "addedBy": "policy", … },
+                       { "id": "s3", "kind": "code", "title": "Resource cap probe", "probe": true, "addedBy": "policy", … } ],
+            "policy": { "egressRefused": [], "probesAdded": ["Containment probe", "Resource cap probe"],
+                        "confirmForced": [], "probeFlagsCleared": [] } } }</code></pre>
+    <h3><code>POST /api/runs</code> (hand-written)</h3>
+<pre><code>// request (with the session cookie)
+{ "planId": "plan_…" }
+// 202 — the plan is now used up (plan.runId is set); a second dispatch → 409
+{ "run": { "id": "run_…", "status": "running", "mode": "mock", "owner": "pr_…", "plan": { …, "owner": "pr_…", "runId": "run_…" },
+           "steps": [ { "stepId": "s1", "status": "pending", "attempts": [] }, … ],
+           "events": [ { "at": "…", "type": "run.created", "message": "3 step(s) planned by …" } ],
+           "createdAt": "…" } }
+// run.status: running | awaiting_confirm | succeeded | failed
+// step status: pending | running | awaiting_confirm | succeeded | failed | skipped</code></pre>
+    <h3><code>POST /api/runs/:id/confirm</code> (hand-written)</h3>
+<pre><code>{ "stepId": "s5", "approve": false }   // stepId must be a string, approve a boolean
+// 200 → { "run": { … } }; run unknown or owned by another session → 404;
+// step not waiting (already decided, replay, concurrent duplicate) → 409
+// an unanswered gate is denied after CONFIRM_TTL_MS (timeline event "confirm.expired")</code></pre>
+    <h3><code>POST /api/sandbox/exec</code> (request hand-written, receipt keys captured)</h3>
+<pre><code>{ "kind": "code", "code": "print(6*7)", "files": { "data.csv": "…" } }
+{ "kind": "browser", "url": "https://example.com/", "action": "navigate", "expect": "…" }
+// action: navigate | screenshot | fill   (submit only through a confirmed run)
+// 200
+{ "receipt": { "sandboxId": "sbx_…", "provider": "mock", "stepId": "adhoc", "attempt": 1,
+  "command": "python3 /sandbox/main.py  # 1 lines", "input": "print(6*7)",
+  "startedAt": "…", "endedAt": "…", "durationMs": 120, "exitCode": 0, "stdout": "42", "stderr": "",
+  "artifacts": [], "limits": { "timeoutMs": 5000, "memoryMb": 256 }, "peakMemoryMb": 24,
+  "envInjected": { … }, "redactions": 0,
+  "isolation": { "provider": "mock", "simulated": true, "hostTouched": false, "networkPolicy": "deny-all egress",
+                 "blockedAttempts": [], "destroyed": true, … },
+  "clock": "simulated", "sealedAt": "…", "sha256": "…",
+  "signature": { "alg": "Ed25519", "keyId": "…", "value": "…" } } }</code></pre>
+    <h3><code>GET /api/receipts/public-key</code> (captured)</h3>
+<pre><code>{ "alg": "Ed25519", "keyId": "352bdb22ea6c8b25", "spki": "MCowBQYD…", "ephemeral": true }</code></pre>
+    <p class="wd-source">Source: <code>src/lib/types.ts</code>, <code>src/app/api/*/route.ts</code>, <code>src/lib/sandbox/index.ts</code>; captured responses from <code>next start</code> on 127.0.0.1, mock mode</p>
+  </section>
+  <!-- workdocs:end id=shapes -->
+
+  <!-- workdocs:begin id=errors -->
+  <section id="errors">
+    <h2>Errors</h2>
+    <p>Every error body is <code>{ "error": "&lt;message&gt;" }</code> (<code>src/lib/http.ts:bad</code>); access errors add a <code>code</code> (<code>src/lib/access.ts</code>).</p>
+    <div class="wd-table"><table>
+      <thead><tr><th>Code</th><th>When</th><th>Routes</th></tr></thead>
+      <tbody>
+        <tr><td>400</td><td>Missing <code>message</code> or invalid JSON; wrong confirm body types; exec: no body, <code>egressAllowlist</code> present, bad <code>kind</code> or <code>action</code> (including <code>submit</code>), missing <code>code</code>/<code>url</code></td><td>chat, confirm, exec</td></tr>
+        <tr><td>401</td><td><code>session_required</code>: no valid <code>pb_session</code> cookie; <code>token_required</code>: missing or wrong <code>x-proofbox-token</code> on <code>POST /api/session</code></td><td>chat, runs, run, confirm, exec; session</td></tr>
+        <tr><td>403</td><td><code>host_not_allowed</code>: local mode and a non-loopback <code>Host</code>; <code>bad_origin</code>: a POST with a cross-origin <code>Origin</code></td><td>all API routes</td></tr>
+        <tr><td>404</td><td><code>unknown planId</code> (missing or another session's); <code>run not found</code> (missing or another session's)</td><td>runs, run, confirm</td></tr>
+        <tr><td>409</td><td>Plan already dispatched; step not awaiting confirmation (second decision, replay)</td><td>runs, confirm</td></tr>
+        <tr><td>413</td><td><code>message</code> or <code>code</code> over 20000 characters; <code>files</code> over 200000 characters</td><td>chat, exec</td></tr>
+        <tr><td>429</td><td>Rate limited (<code>rate limited — retry in Ns</code>); too many active runs; sandbox queue full or no slot within the wait; too many new sessions</td><td>chat, runs, exec, session</td></tr>
+        <tr><td>502</td><td>The planner's plan was rejected by policy</td><td>chat</td></tr>
+        <tr><td>503</td><td><code>config_error</code>: invalid security configuration (also stops the server at start)</td><td>all API routes</td></tr>
+      </tbody>
+    </table></div>
+    <p>Observed on 2026-11-07 with <code>tests/adversarial.probe.mjs</code> and <code>tests/config.probe.mjs</code>: 401 on every guarded route without a session (token set and unset), 401 for a missing or wrong token, 404 for another session's run, plan and confirm, 409 for a re-dispatch, a replayed approve and the second of two concurrent approves, 429 for a third active run and for a flooding session's excess execs, 403 for a foreign <code>Host</code> and a cross-origin POST. 503 and 502 are taken from the code.</p>
+    <p>Failures during a run return no HTTP error: the run becomes <code>failed</code> and the timeline says why (see <a href="how-it-works.html#errors">How it works → Failure paths</a>).</p>
+    <p class="wd-source">Source: <code>src/lib/http.ts</code>, <code>src/lib/access.ts</code>, <code>src/lib/orchestrator.ts</code>, <code>src/app/api/*/route.ts</code></p>
+  </section>
+  <!-- workdocs:end id=errors -->
+
+  <!-- workdocs:begin id=try -->
+  <section id="try">
+    <h2>Try it</h2>
+    <p>Start the app (<a href="setup.html#run">Setup → Run</a>), then:</p>
+<pre><code>BASE=http://localhost:3000   # change if the app runs on another port
+curl -s $BASE/api/status
+
+# start a session; keep its cookie in a jar (add -H "x-proofbox-token: $PROOFBOX_DEMO_TOKEN" if the server has a token)
+curl -s -c jar -b jar -X POST $BASE/api/session -H 'content-type: application/json' -d '{}'
+
+# metadata probe: the receipt has exitCode 1 and isolation.blockedAttempts is not empty (mock rules)
+curl -s -b jar -X POST $BASE/api/sandbox/exec -H 'content-type: application/json' \
+  -d '{"kind":"browser","url":"http://169.254.169.254/"}'
+
+# save a receipt and verify it offline (pin the key you trust, or fetch it with --base)
+curl -s -b jar -X POST $BASE/api/sandbox/exec -H 'content-type: application/json' \
+  -d '{"kind":"code","code":"print(6*7)"}' &gt; receipt.json
+npm run verify-receipt -- receipt.json --base $BASE   # two ✓ lines, exit 0</code></pre>
+    <p>Without the cookie every call but status, session and public key answers 401. Never paste a real token into docs. <code>verify-receipt</code> also accepts the raw <code>{ "receipt": … }</code> response, as above; it has no default <code>--base</code>, and exits 3 (not 1) when the key cannot be fetched.</p>
+    <p class="wd-source">Source: <code>src/app/api/session/route.ts</code>, <code>src/app/api/sandbox/exec/route.ts</code>, <code>src/lib/sandbox/mock-sandbox.ts</code> (<code>simulateBrowser</code>), <code>scripts/verify-receipt.mjs</code></p>
+  </section>
+  <!-- workdocs:end id=try -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07, updated the same day after the security fixes (the project has no git history); sources: src/app/api/*/route.ts, src/lib/http.ts, src/lib/types.ts, src/lib/config.ts, src/lib/sandbox/index.ts, scripts/verify-receipt.mjs. Static page: re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

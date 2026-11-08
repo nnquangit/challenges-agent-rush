@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Overview · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html" aria-current="page">Overview</a>
+    <a class="wd-link" href="setup.html">Setup</a>
+    <a class="wd-link" href="how-it-works.html">How it works</a>
+    <a class="wd-link" href="security.html">Security</a>
+    <a class="wd-link" href="api.html">API</a>
+    <a class="wd-link" href="demo.html">Demo script</a>
+    <a class="wd-link" href="diagrams.html">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>Overview</h1>
+    <p class="wd-lead">A containment-first control plane for AI agents: plan a task, run every step in a throw-away sandbox, and return a receipt anyone can verify.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> No container or VM runs, and the app makes no calls to Vultr or any other external service. Results such as "blocked", "OOM-killed" and "destroyed" come from software rules in <code>MockSandbox</code>; they are not evidence of real isolation.</p>
+
+  <!-- workdocs:begin id=what -->
+  <section id="what">
+    <h2>What it is</h2>
+    <p>ProofBox is built for the Vultr Agent Rush hackathon, Challenge 1 "Blast Radius Zero". Agents that run code or drive a browser can leak secrets or touch systems they should not. ProofBox puts a control plane between the agent and the machine: an LLM proposes a plan, the server validates and rewrites it, each step runs in its own sandbox that is destroyed afterwards, side effects wait for a human, and every step returns a receipt.</p>
+    <p>A receipt holds stdout/stderr, the exit code, artifacts, the environment the sandbox saw and an isolation report, all hashed with sha256 and signed with Ed25519. It can be checked in the browser or offline with a script.</p>
+    <p>Audience: hackathon judges and developers who want to know whether agent actions can be contained and audited.</p>
+    <p class="wd-source">Source: <code>README.md</code> (intro), <code>package.json</code> (<code>description</code>, version <code>0.1.0</code>)</p>
+  </section>
+  <!-- workdocs:end id=what -->
+
+  <!-- workdocs:begin id=status -->
+  <section id="status">
+    <h2>Status</h2>
+    <p>Version <code>0.1.0</code>, mock-first phase. Mock mode is on unless <code>MOCK</code> is exactly <code>0</code> (<code>src/lib/config.ts:isMock</code>). Both Vultr providers are stubs that throw; nothing is deployed and no Vultr account is connected.</p>
+    <div class="wd-table"><table>
+      <thead><tr><th>Part</th><th>Today</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Plan validation, server-inserted probes, forced human confirm, egress = hosts the user typed ∩ server allowlist</td><td><span class="wd-tag real">real code</span></td><td><code>src/lib/policy.ts</code></td></tr>
+        <tr><td>Human gate; only server-stored plans run (<code>planId</code>)</td><td><span class="wd-tag real">real code</span></td><td><code>src/lib/orchestrator.ts</code>, <code>src/app/api/runs/route.ts</code></td></tr>
+        <tr><td>Secret redaction of the sandbox env and of its output</td><td><span class="wd-tag real">real code</span></td><td><code>src/lib/sandbox/redact.ts</code></td></tr>
+        <tr><td>Receipt sha256 + Ed25519 (ephemeral key per process unless <code>RECEIPT_SIGNING_KEY</code> is set)</td><td><span class="wd-tag real">real code</span></td><td><code>src/lib/sandbox/signing.ts</code></td></tr>
+        <tr><td>Code execution, browser, network blocking, memory and time caps</td><td><span class="wd-tag mock">simulated</span> <code>MockSandbox</code> matches patterns and returns fixtures</td><td><code>src/lib/sandbox/mock-sandbox.ts</code></td></tr>
+        <tr><td>Planner, repair, explain, "vision" verify</td><td><span class="wd-tag mock">simulated</span> <code>MockLlm</code> templates</td><td><code>src/lib/llm/mock-llm.ts</code></td></tr>
+        <tr><td><code>VultrSandbox</code>, <code>VultrInferenceLlm</code></td><td><span class="wd-tag none">stub</span> throw, no network code</td><td><code>src/lib/sandbox/vultr-sandbox.ts</code>, <code>src/lib/llm/vultr-inference-llm.ts</code></td></tr>
+        <tr><td>Abuse limits (token, rate limit)</td><td><span class="wd-tag partial">partial</span> only on <code>/api/sandbox/exec</code></td><td><code>src/app/api/sandbox/exec/route.ts</code></td></tr>
+        <tr><td>Deployment on Vultr (VM, Serverless Inference, Docker + gVisor)</td><td><span class="wd-tag none">not started</span></td><td><code>README.md</code> "Vultr services used"</td></tr>
+      </tbody>
+    </table></div>
+    <p>Checks run for this page on 2026-11-07 (mock mode): <code>npm run typecheck</code> clean, <code>npm test</code> 47/47 pass, <code>npm run smoke</code> 29/29 against a local production server, black-box policy probe 80 pass / 1 fail (the known <code>x-forwarded-for</code> bypass). These prove the control-plane rules, not real isolation.</p>
+    <p>Known unfixed issues, detailed on <a href="security.html#gaps">Security → Known gaps</a>: <code>/api/chat</code> and <code>/api/runs</code> have no token or rate limit and the sandbox wait queue is unbounded; the rate-limit key trusts <code>x-forwarded-for</code>; anyone can read every run; <code>isForbiddenTarget</code> misses some address ranges; <code>verify-receipt</code> defaults to <code>http://localhost:3000</code>; simulated stderr reads like real kernel messages.</p>
+    <p>Submission blockers: no real sandbox (Docker/gVisor on a Vultr VM), no Vultr account or calls, no public repository or deployment. A demo video of the mock build exists (<a href="demo.html#video">Demo script → Recorded demo video</a>); it must be re-recorded once a real sandbox runs on Vultr.</p>
+    <p class="wd-source">Source: <code>src/lib/config.ts</code>, <code>src/lib/sandbox/vultr-sandbox.ts</code>, <code>src/lib/llm/vultr-inference-llm.ts</code>, <code>README.md</code> ("What is simulated", "Vultr services used"), test runs listed above</p>
+  </section>
+  <!-- workdocs:end id=status -->
+
+  <!-- workdocs:begin id=arch -->
+  <section id="arch">
+    <h2>Architecture</h2>
+    <p>One Next.js app holds the UI and the API. Every request goes through the policy and the orchestrator before anything reaches a sandbox provider. Dashed boxes are mocks in this build.</p>
+    <svg class="wd-diagram" viewBox="0 0 960 270" role="img" aria-label="Architecture: the browser UI calls the API routes. The chat route asks the LLM provider for a plan and passes it through the policy; plans and runs are kept in an in-memory store. The runs route starts the orchestrator, which calls runInSandbox for each step; runInSandbox uses the sandbox provider and seals each receipt with sha256 and Ed25519. The LLM provider and the sandbox provider are mocks; the Vultr versions are stubs.">
+      <g fill="none" stroke="#8a929c" stroke-width="1.5">
+        <path class="edge" d="M160 135 H210"/><path class="edge" d="M280 108 V76"/><path class="edge" d="M350 135 H400"/>
+        <path class="edge" d="M470 108 V76"/><path class="edge" d="M540 135 H590"/><path class="edge" d="M730 135 H780"/>
+        <path class="edge" d="M660 162 V196"/><path class="edge" d="M280 162 V196"/>
+      </g>
+      <g fill="#ffffff" stroke="#9aa3a0">
+        <rect class="box" x="20" y="108" width="140" height="54" rx="12"/>
+        <rect class="box" x="210" y="108" width="140" height="54" rx="12"/>
+        <rect class="box" x="400" y="108" width="140" height="54" rx="12"/>
+        <rect class="box" x="590" y="108" width="140" height="54" rx="12"/>
+        <rect class="box sim" x="780" y="108" width="160" height="54" rx="12"/>
+        <rect class="box" x="210" y="22" width="140" height="54" rx="12"/>
+        <rect class="box sim" x="400" y="22" width="140" height="54" rx="12"/>
+        <rect class="box" x="210" y="196" width="140" height="54" rx="12"/>
+        <rect class="box" x="590" y="196" width="140" height="54" rx="12"/>
+      </g>
+      <g fill="#1c2426" font-size="13" text-anchor="middle">
+        <text x="90" y="131">Browser UI</text><text class="muted" x="90" y="149">ProofBoxApp.tsx</text>
+        <text x="280" y="131">API routes</text><text class="muted" x="280" y="149">src/app/api/*</text>
+        <text x="470" y="131">Orchestrator</text><text class="muted" x="470" y="149">orchestrator.ts</text>
+        <text x="660" y="131">runInSandbox</text><text class="muted" x="660" y="149">sandbox/index.ts</text>
+        <text x="860" y="131">MockSandbox</text><text class="muted" x="860" y="149">VultrSandbox: stub</text>
+        <text x="280" y="45">Policy</text><text class="muted" x="280" y="63">policy.ts</text>
+        <text x="470" y="45">MockLlm</text><text class="muted" x="470" y="63">VultrInferenceLlm: stub</text>
+        <text x="280" y="219">Store</text><text class="muted" x="280" y="237">store.ts (memory)</text>
+        <text x="660" y="219">Signing</text><text class="muted" x="660" y="237">signing.ts</text>
+      </g>
+    </svg>
+    <ul>
+      <li><strong>UI</strong> <code>src/components/ProofBoxApp.tsx</code> calls the routes in <code>src/app/api/*</code> and polls the run.</li>
+      <li><strong>Planner path</strong>: <code>POST /api/chat</code> → <code>getLlm().plan()</code> → <code>enforcePolicy()</code> → <code>savePlan()</code> (in memory, at most 200 entries, <code>src/lib/store.ts</code>).</li>
+      <li><strong>Orchestrator</strong> <code>src/lib/orchestrator.ts</code>: walks the steps, up to 2 attempts for code steps, stops at <code>awaiting_confirm</code> before a gated step.</li>
+      <li><strong>runInSandbox</strong> <code>src/lib/sandbox/index.ts</code>: takes a slot (at most <code>SANDBOX_MAX_CONCURRENT</code>), redacts the env, create → exec → artifacts → <code>destroy()</code> in <code>finally</code>, then seals the receipt.</li>
+      <li><strong>Providers</strong>: <code>getSandboxProvider()</code> and <code>getLlm()</code> pick the mocks unless <code>MOCK=0</code>.</li>
+    </ul>
+    <p>Interactive version: <a href="diagrams/architecture-current.html">Architecture diagram</a> (generated with Archify from the current code on 2026-11-07, self-contained, no network requests; source <code>.archify/architecture-proofbox-current-20261107-112841/candidate.json</code>).</p>
+    <figure style="margin:0">
+      <iframe src="diagrams/architecture-current.html" title="ProofBox architecture, current code (interactive)" loading="lazy" style="display:block;width:100%;height:560px;border:1px solid var(--wd-line);border-radius:8px;background:var(--wd-node)"></iframe>
+      <figcaption class="wd-source"><a href="diagrams/architecture-current.html">Open the architecture diagram full screen</a> · more diagrams (sequences, step lifecycle, policy, receipt pipeline, planned Vultr target) on <a href="diagrams.html">Diagrams</a>.</figcaption>
+    </figure>
+    <p class="wd-source">Source: <code>src/app/api/*</code>, <code>src/lib/orchestrator.ts</code>, <code>src/lib/sandbox/index.ts</code>, <code>src/lib/llm/index.ts</code>, <code>src/lib/store.ts</code></p>
+  </section>
+  <!-- workdocs:end id=arch -->
+
+  <!-- workdocs:begin id=pages -->
+  <section id="pages">
+    <h2>Pages</h2>
+    <div class="wd-cards">
+      <a class="wd-card" href="setup.html"><strong>Setup</strong><p>Prerequisites, install, configuration, run, test, verify and troubleshooting.</p></a>
+      <a class="wd-card" href="how-it-works.html"><strong>How it works</strong><p>The animated flow, one run step by step, failure paths, real vs simulated.</p></a>
+      <a class="wd-card" href="security.html"><strong>Security</strong><p>Assets, threats and controls with file references, secrets, known gaps.</p></a>
+      <a class="wd-card" href="api.html"><strong>API</strong><p>Eight HTTP routes, request and response shapes, errors, curl.</p></a>
+      <a class="wd-card" href="demo.html"><strong>Demo script</strong><p>A 3-minute script with narration, expected results, fallbacks and cleanup.</p></a>
+      <a class="wd-card" href="diagrams.html"><strong>Diagrams</strong><p>Architecture, sequences, step lifecycle, policy, receipt pipeline and the planned Vultr target, grouped by work map feature.</p></a>
+      <a class="wd-card" href="workmap.html"><strong>Work map</strong><p>Epics → Features → Tasks → Subtasks with status and owner, kept by the agents.</p></a>
+    </div>
+  </section>
+  <!-- workdocs:end id=pages -->
+
+  <!-- workdocs:begin id=run -->
+  <section id="run">
+    <h2>Quick start</h2>
+<pre><code>npm install
+npm run dev        # Next.js dev server; the README gives http://localhost:3000</code></pre>
+    <p>No <code>.env</code> file is needed; mock mode is the default. Variables, tests and checks: <a href="setup.html">Setup</a>.</p>
+    <p class="wd-source">Source: <code>package.json</code> scripts, <code>README.md</code> "Quick start"</p>
+  </section>
+  <!-- workdocs:end id=run -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07 (the project has no git history); sources: README.md, package.json, .env.example, src/lib/*, src/app/api/*, test runs of 2026-11-07. Static page: re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "ProofBox: plan, then run each step in its own sandbox (mock mode)",
+    "output": ".archify/sequence-plan-run-20261107-163430/sequence-plan-run.html",
+    "locale": "en",
+    "viewBox": [
+      1080,
+      688
+    ],
+    "column_fit": "spread",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "Browser UI",
+      "sublabel": "ProofBoxApp.tsx"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API routes",
+      "sublabel": "src/app/api/*"
+    },
+    {
+      "id": "llm",
+      "type": "external",
+      "label": "MockLlm",
+      "sublabel": "simulated planner"
+    },
+    {
+      "id": "policy",
+      "type": "security",
+      "label": "Policy",
+      "sublabel": "policy.ts"
+    },
+    {
+      "id": "orch",
+      "type": "backend",
+      "label": "Orchestrator",
+      "sublabel": "orchestrator.ts"
+    },
+    {
+      "id": "sbx",
+      "type": "security",
+      "label": "runInSandbox",
+      "sublabel": "sandbox/index.ts"
+    },
+    {
+      "id": "mock",
+      "type": "cloud",
+      "label": "MockSandbox",
+      "sublabel": "simulated, no VM"
+    }
+  ],
+  "segments": [
+    {
+      "from": 160,
+      "to": 326,
+      "label": "1 · Plan (nothing runs)"
+    },
+    {
+      "from": 368,
+      "to": 590,
+      "label": "2 · Run step by step"
+    }
+  ],
+  "messages": [
+    {
+      "id": "chat",
+      "from": "ui",
+      "to": "api",
+      "label": "POST /api/chat",
+      "variant": "emphasis",
+      "y": 172
+    },
+    {
+      "id": "plan",
+      "from": "api",
+      "to": "llm",
+      "label": "plan({ message })",
+      "y": 200
+    },
+    {
+      "id": "plan-json",
+      "from": "llm",
+      "to": "api",
+      "label": "plan JSON",
+      "variant": "return",
+      "y": 228
+    },
+    {
+      "id": "enforce",
+      "from": "api",
+      "to": "policy",
+      "label": "enforcePolicy()",
+      "variant": "security",
+      "y": 256
+    },
+    {
+      "id": "enforced",
+      "from": "policy",
+      "to": "api",
+      "label": "probes + confirm + egress",
+      "variant": "return",
+      "y": 284
+    },
+    {
+      "id": "reply",
+      "from": "api",
+      "to": "ui",
+      "label": "{ reply, plan }",
+      "variant": "return",
+      "y": 312
+    },
+    {
+      "id": "runs",
+      "from": "ui",
+      "to": "api",
+      "label": "POST /api/runs { planId }",
+      "variant": "emphasis",
+      "y": 380
+    },
+    {
+      "id": "start",
+      "from": "api",
+      "to": "orch",
+      "label": "startRun(plan)",
+      "y": 408
+    },
+    {
+      "id": "accepted",
+      "from": "api",
+      "to": "ui",
+      "label": "202 { run }",
+      "variant": "return",
+      "y": 436
+    },
+    {
+      "id": "dispatch",
+      "from": "orch",
+      "to": "sbx",
+      "label": "runInSandbox(step)",
+      "variant": "emphasis",
+      "y": 464
+    },
+    {
+      "id": "exec",
+      "from": "sbx",
+      "to": "mock",
+      "label": "create → exec → artifacts",
+      "variant": "dashed",
+      "y": 492
+    },
+    {
+      "id": "destroy",
+      "from": "sbx",
+      "to": "mock",
+      "label": "destroy() in finally",
+      "variant": "security",
+      "y": 520
+    },
+    {
+      "id": "sealed",
+      "from": "sbx",
+      "to": "orch",
+      "label": "sealed receipt",
+      "variant": "return",
+      "y": 548
+    },
+    {
+      "id": "poll",
+      "from": "ui",
+      "to": "api",
+      "label": "GET /api/runs/:id every 450 ms",
+      "variant": "dashed",
+      "y": 576
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Plan before anything runs",
+      "items": [
+        "POST /api/chat only plans: getLlm().plan(), then enforcePolicy() and savePlan() (src/app/api/chat/route.ts)",
+        "POST /api/runs takes a stored planId, never client steps (src/app/api/runs/route.ts)"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "One sandbox per step",
+      "items": [
+        "advance() walks the steps; executeStep() retries a failed code step once via llm.repair() (MAX_ATTEMPTS = 2)",
+        "runInSandbox: redact env → create → exec → artifacts → destroy() in finally → sealReceipt()"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Simulated in this build",
+      "items": [
+        "MockLlm and MockSandbox are used while MOCK=1 (default, src/lib/config.ts)",
+        "No container or VM runs; the UI polls the in-memory run every 450 ms"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "ProofBox human confirm gate before a submit step (mock mode)",
+    "output": ".archify/sequence-confirm-gate-20261107-163430/sequence-confirm-gate.html",
+    "locale": "en",
+    "viewBox": [
+      1080,
+      660
+    ],
+    "column_fit": "spread",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "User",
+      "sublabel": "reviewer"
+    },
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "Browser UI",
+      "sublabel": "ConfirmDialog.tsx"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API routes",
+      "sublabel": "runs/[id]/confirm"
+    },
+    {
+      "id": "orch",
+      "type": "backend",
+      "label": "Orchestrator",
+      "sublabel": "orchestrator.ts"
+    },
+    {
+      "id": "sbx",
+      "type": "security",
+      "label": "runInSandbox",
+      "sublabel": "sandbox/index.ts"
+    },
+    {
+      "id": "mock",
+      "type": "cloud",
+      "label": "MockSandbox",
+      "sublabel": "simulated, no VM"
+    }
+  ],
+  "segments": [
+    {
+      "from": 160,
+      "to": 410,
+      "label": "1 · Pause, then Approve"
+    },
+    {
+      "from": 452,
+      "to": 562,
+      "label": "2 · Deny"
+    }
+  ],
+  "messages": [
+    {
+      "id": "waiting",
+      "from": "api",
+      "to": "ui",
+      "label": "poll → awaiting_confirm",
+      "variant": "return",
+      "y": 172
+    },
+    {
+      "id": "dialog",
+      "from": "ui",
+      "to": "user",
+      "label": "Approve / Deny (Deny focused)",
+      "variant": "security",
+      "y": 200
+    },
+    {
+      "id": "approve",
+      "from": "user",
+      "to": "ui",
+      "label": "Approve",
+      "y": 228
+    },
+    {
+      "id": "confirm",
+      "from": "ui",
+      "to": "api",
+      "label": "POST confirm { approve: true }",
+      "variant": "security",
+      "y": 256
+    },
+    {
+      "id": "confirm-step",
+      "from": "api",
+      "to": "orch",
+      "label": "confirmStep() → advance()",
+      "variant": "security",
+      "y": 284
+    },
+    {
+      "id": "dispatch",
+      "from": "orch",
+      "to": "sbx",
+      "label": "runInSandbox(submit)",
+      "variant": "emphasis",
+      "y": 312
+    },
+    {
+      "id": "destroy",
+      "from": "sbx",
+      "to": "mock",
+      "label": "create → exec → destroy() (simulated)",
+      "variant": "dashed",
+      "y": 340
+    },
+    {
+      "id": "sealed",
+      "from": "sbx",
+      "to": "orch",
+      "label": "sealed receipt",
+      "variant": "return",
+      "y": 368
+    },
+    {
+      "id": "done",
+      "from": "api",
+      "to": "ui",
+      "label": "poll → run succeeded",
+      "variant": "return",
+      "y": 396
+    },
+    {
+      "id": "deny",
+      "from": "user",
+      "to": "ui",
+      "label": "Deny",
+      "y": 464
+    },
+    {
+      "id": "confirm-deny",
+      "from": "ui",
+      "to": "api",
+      "label": "POST confirm { approve: false }",
+      "variant": "security",
+      "y": 492
+    },
+    {
+      "id": "deny-step",
+      "from": "api",
+      "to": "orch",
+      "label": "confirmStep() → skipped",
+      "variant": "security",
+      "y": 520
+    },
+    {
+      "id": "skipped",
+      "from": "api",
+      "to": "ui",
+      "label": "poll → step skipped, nothing sent",
+      "variant": "return",
+      "y": 548
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Gate owned by the server",
+      "items": [
+        "enforcePolicy() forces requiresConfirm on every browser submit (src/lib/policy.ts)",
+        "advance() re-checks it and stops at awaiting_confirm even if the planner forgot the flag (src/lib/orchestrator.ts)"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Approve",
+      "items": [
+        "confirmStep() sets the step back to pending and calls advance(); the submit step then runs in a fresh sandbox"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Deny",
+      "items": [
+        "The step is marked skipped with the note \"Nothing was submitted\"; no sandbox is created for it",
+        "Probes are placed before the gate, so containment is shown even when the human denies"
+      ]
+    }
+  ]
+}

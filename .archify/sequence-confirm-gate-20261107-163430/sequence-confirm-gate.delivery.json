@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "7f4608b2-8c4c-4520-9ac1-a9b039b40e04",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/sequence-confirm-gate-20261107-163430/candidate.json",
+  "output": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/sequence-confirm-gate-20261107-163430/sequence-confirm-gate.html",
+  "specification": {
+    "sha256": "230aca1fe73829c12b88bcc6261771660af3bd4c89bc51b9b2ae55c897246790",
+    "bytes": 4219
+  },
+  "artifact": {
+    "sha256": "6f9d6d6fc53af95f57b66f19368baea80f2193438965895bd3a7f5ced6808865",
+    "bytes": 758845
+  }
+}

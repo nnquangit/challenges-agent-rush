@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>API · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html">Overview</a>
+    <a class="wd-link" href="setup.html">Setup</a>
+    <a class="wd-link" href="how-it-works.html">How it works</a>
+    <a class="wd-link" href="security.html">Security</a>
+    <a class="wd-link" href="api.html" aria-current="page">API</a>
+    <a class="wd-link" href="demo.html">Demo script</a>
+    <a class="wd-link" href="diagrams.html">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>API</h1>
+    <p class="wd-lead">The eight HTTP routes, their shapes and errors, and the receipt verification CLI.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> No container or VM runs, and the app makes no calls to Vultr or any other external service. Results such as "blocked", "OOM-killed" and "destroyed" come from software rules in <code>MockSandbox</code>; they are not evidence of real isolation.</p>
+
+  <!-- workdocs:begin id=kind -->
+  <section id="kind">
+    <h2>Interface type</h2>
+    <p>HTTP + JSON through Next.js App Router route handlers in <code>src/app/api/</code>. There is no OpenAPI or GraphQL schema and no login. The only authentication is the optional <code>x-proofbox-token</code> header on <code>/api/sandbox/exec</code>. Every response sets <code>cache-control: no-store</code> (<code>src/lib/http.ts</code>). There is also a CLI, <code>npm run verify-receipt</code> (<code>scripts/verify-receipt.mjs</code>). In mock mode no endpoint calls Vultr.</p>
+    <p class="wd-source">Source: <code>src/app/api/*/route.ts</code>, <code>src/lib/http.ts</code>, <code>package.json</code></p>
+  </section>
+  <!-- workdocs:end id=kind -->
+
+  <!-- workdocs:begin id=endpoints -->
+  <section id="endpoints">
+    <h2>Endpoints</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Method + path</th><th>Purpose</th><th>Auth / limits</th><th>File</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /api/status</code></td><td>Mode, llm, sandbox, default limits, egress allowlist, slot stats, <code>adhocExecToken</code></td><td>none</td><td><code>src/app/api/status/route.ts</code></td></tr>
+        <tr><td><code>POST /api/chat</code></td><td>Plan a task (through <code>enforcePolicy</code>); runs nothing</td><td>none, no rate limit</td><td><code>src/app/api/chat/route.ts</code></td></tr>
+        <tr><td><code>POST /api/runs</code></td><td>Start a stored plan by <code>planId</code>, in the background</td><td>none, no rate limit; waits for a sandbox slot</td><td><code>src/app/api/runs/route.ts</code></td></tr>
+        <tr><td><code>GET /api/runs</code></td><td>Recent run summaries</td><td>none (readable by anyone)</td><td><code>src/app/api/runs/route.ts</code></td></tr>
+        <tr><td><code>GET /api/runs/:id</code></td><td>Full run: steps, receipts, timeline</td><td>none</td><td><code>src/app/api/runs/[id]/route.ts</code></td></tr>
+        <tr><td><code>POST /api/runs/:id/confirm</code></td><td>Approve or deny a waiting step</td><td>none</td><td><code>src/app/api/runs/[id]/confirm/route.ts</code></td></tr>
+        <tr><td><code>POST /api/sandbox/exec</code></td><td>One-off exec, returns a receipt (no <code>submit</code>)</td><td><code>x-proofbox-token</code> if <code>PROOFBOX_DEMO_TOKEN</code> is set; <code>SANDBOX_EXEC_PER_MINUTE</code> (default 20) per client key; 429 when all slots are busy</td><td><code>src/app/api/sandbox/exec/route.ts</code></td></tr>
+        <tr><td><code>GET /api/receipts/public-key</code></td><td>Ed25519 public key for verifying receipts</td><td>none</td><td><code>src/app/api/receipts/public-key/route.ts</code></td></tr>
+      </tbody>
+    </table></div>
+    <p class="wd-source">Source: the route files listed (every <code>route.ts</code> under <code>src/app/api/</code>)</p>
+  </section>
+  <!-- workdocs:end id=endpoints -->
+
+  <!-- workdocs:begin id=shapes -->
+  <section id="shapes">
+    <h2>Request and response</h2>
+    <p>Examples marked <strong>captured</strong> come from a local mock server on 2026-11-07 (ids and keys shortened). Examples marked <strong>hand-written</strong> follow <code>src/lib/types.ts</code> and the route files; <code>…</code> marks omitted parts.</p>
+    <h3><code>GET /api/status</code> (captured)</h3>
+<pre><code>{ "mode": "mock", "llm": "mock-llm (templates, no network)", "sandbox": "mock",
+  "limits": { "timeoutMs": 5000, "memoryMb": 256 },
+  "egressAllowlist": ["shop.example.com", "example.com", "docs.example.com"],
+  "sandboxes": { "active": 0, "queued": 0, "max": 3 },
+  "adhocExecToken": false }</code></pre>
+    <h3><code>POST /api/chat</code> (hand-written)</h3>
+<pre><code>// request: { "message": string }  (required, at most 20000 characters)
+{ "message": "compute 6*7" }
+// 200
+{ "reply": "… 3 step(s) — each runs in its own sandbox that is destroyed afterwards.",
+  "plan": { "id": "plan_…", "intent": "code", "title": "…", "summary": "…", "planner": "mock-llm (templates, no network)",
+            "egressAllowlist": [], "createdAt": "…",
+            "steps": [ { "id": "s1", "kind": "code", "title": "Run code in sandbox", "code": "print(6*7)", … },
+                       { "id": "s2", "kind": "code", "title": "Containment probe", "probe": true, "addedBy": "policy", … },
+                       { "id": "s3", "kind": "code", "title": "Resource cap probe", "probe": true, "addedBy": "policy", … } ],
+            "policy": { "egressRefused": [], "probesAdded": ["Containment probe", "Resource cap probe"],
+                        "confirmForced": [], "probeFlagsCleared": [] } } }</code></pre>
+    <h3><code>POST /api/runs</code> (hand-written)</h3>
+<pre><code>// request
+{ "planId": "plan_…" }
+// 202
+{ "run": { "id": "run_…", "status": "running", "mode": "mock", "plan": { … },
+           "steps": [ { "stepId": "s1", "status": "pending", "attempts": [] }, … ],
+           "events": [ { "at": "…", "type": "run.created", "message": "3 step(s) planned by …" } ],
+           "createdAt": "…" } }
+// run.status: running | awaiting_confirm | succeeded | failed
+// step status: pending | running | awaiting_confirm | succeeded | failed | skipped</code></pre>
+    <h3><code>POST /api/runs/:id/confirm</code> (hand-written)</h3>
+<pre><code>{ "stepId": "s5", "approve": false }   // stepId must be a string, approve a boolean
+// 200 → { "run": { … } }; step not waiting or run unknown → 409</code></pre>
+    <h3><code>POST /api/sandbox/exec</code> (request hand-written, receipt keys captured)</h3>
+<pre><code>{ "kind": "code", "code": "print(6*7)", "files": { "data.csv": "…" } }
+{ "kind": "browser", "url": "https://example.com/", "action": "navigate", "expect": "…" }
+// action: navigate | screenshot | fill   (submit only through a confirmed run)
+// 200
+{ "receipt": { "sandboxId": "sbx_…", "provider": "mock", "stepId": "adhoc", "attempt": 1,
+  "command": "python3 /sandbox/main.py  # 1 lines", "input": "print(6*7)",
+  "startedAt": "…", "endedAt": "…", "durationMs": 120, "exitCode": 0, "stdout": "42", "stderr": "",
+  "artifacts": [], "limits": { "timeoutMs": 5000, "memoryMb": 256 }, "peakMemoryMb": 24,
+  "envInjected": { … }, "redactions": 0,
+  "isolation": { "provider": "mock", "simulated": true, "hostTouched": false, "networkPolicy": "deny-all egress",
+                 "blockedAttempts": [], "destroyed": true, … },
+  "clock": "simulated", "sealedAt": "…", "sha256": "…",
+  "signature": { "alg": "Ed25519", "keyId": "…", "value": "…" } } }</code></pre>
+    <h3><code>GET /api/receipts/public-key</code> (captured)</h3>
+<pre><code>{ "alg": "Ed25519", "keyId": "352bdb22ea6c8b25", "spki": "MCowBQYD…", "ephemeral": true }</code></pre>
+    <p class="wd-source">Source: <code>src/lib/types.ts</code>, <code>src/app/api/*/route.ts</code>, <code>src/lib/sandbox/index.ts</code>; captured responses from <code>next start</code> on 127.0.0.1, mock mode</p>
+  </section>
+  <!-- workdocs:end id=shapes -->
+
+  <!-- workdocs:begin id=errors -->
+  <section id="errors">
+    <h2>Errors</h2>
+    <p>Every error body is <code>{ "error": "&lt;message&gt;" }</code> (<code>src/lib/http.ts:bad</code>).</p>
+    <div class="wd-table"><table>
+      <thead><tr><th>Code</th><th>When</th><th>Routes</th></tr></thead>
+      <tbody>
+        <tr><td>400</td><td>Missing <code>message</code> or invalid JSON; wrong confirm body types; exec: no body, <code>egressAllowlist</code> present, bad <code>kind</code> or <code>action</code> (including <code>submit</code>), missing <code>code</code>/<code>url</code></td><td>chat, confirm, exec</td></tr>
+        <tr><td>401</td><td>Missing or wrong <code>x-proofbox-token</code> when <code>PROOFBOX_DEMO_TOKEN</code> is set</td><td>exec</td></tr>
+        <tr><td>404</td><td><code>unknown planId</code>; <code>run not found</code></td><td>runs, runs/:id</td></tr>
+        <tr><td>409</td><td>Step not awaiting confirmation, unknown run, second decision</td><td>confirm</td></tr>
+        <tr><td>413</td><td><code>message</code> or <code>code</code> over 20000 characters; <code>files</code> over 200000 characters</td><td>chat, exec</td></tr>
+        <tr><td>429</td><td>Rate limited (<code>rate limited — retry in Ns</code>) or all sandbox slots busy</td><td>exec</td></tr>
+        <tr><td>502</td><td>The planner's plan was rejected by policy</td><td>chat</td></tr>
+      </tbody>
+    </table></div>
+    <p>Observed on 2026-11-07: invalid JSON → 400, unknown <code>planId</code> → 404, unknown run → 404, confirm on an unknown run → 409, empty confirm body → 400, exec with <code>egressAllowlist</code> → 400, exec with <code>action: "submit"</code> → 400. Not observed: 401, 413, 429 from slots, 502 (taken from the code).</p>
+    <p>Failures during a run return no HTTP error: the run becomes <code>failed</code> and the timeline says why (see <a href="how-it-works.html#errors">How it works → Failure paths</a>).</p>
+    <p class="wd-source">Source: <code>src/lib/http.ts</code>, <code>src/app/api/*/route.ts</code></p>
+  </section>
+  <!-- workdocs:end id=errors -->
+
+  <!-- workdocs:begin id=try -->
+  <section id="try">
+    <h2>Try it</h2>
+    <p>Start the app (<a href="setup.html#run">Setup → Run</a>), then:</p>
+<pre><code>BASE=http://localhost:3000   # change if the app runs on another port
+curl -s $BASE/api/status
+
+# metadata probe: the receipt has exitCode 1 and isolation.blockedAttempts is not empty (mock rules)
+curl -s -X POST $BASE/api/sandbox/exec -H 'content-type: application/json' \
+  -H "x-proofbox-token: $PROOFBOX_DEMO_TOKEN" \
+  -d '{"kind":"browser","url":"http://169.254.169.254/"}'
+
+# save a receipt and verify it offline
+curl -s -X POST $BASE/api/sandbox/exec -H 'content-type: application/json' \
+  -d '{"kind":"code","code":"print(6*7)"}' &gt; receipt.json
+npm run verify-receipt -- receipt.json --base $BASE   # two ✓ lines, exit 0</code></pre>
+    <p>The token header is needed only when the server sets <code>PROOFBOX_DEMO_TOKEN</code>; never paste a real value into docs. <code>verify-receipt</code> also accepts the raw <code>{ "receipt": … }</code> response, as above.</p>
+    <p class="wd-source">Source: <code>src/app/api/sandbox/exec/route.ts</code>, <code>src/lib/sandbox/mock-sandbox.ts:254-281</code>, <code>scripts/verify-receipt.mjs:23</code></p>
+  </section>
+  <!-- workdocs:end id=try -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07 (the project has no git history); sources: src/app/api/*/route.ts, src/lib/http.ts, src/lib/types.ts, src/lib/config.ts, src/lib/sandbox/index.ts, scripts/verify-receipt.mjs. Static page: re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

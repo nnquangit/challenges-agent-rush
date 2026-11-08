@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Security · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html">Overview</a>
+    <a class="wd-link" href="setup.html">Setup</a>
+    <a class="wd-link" href="how-it-works.html">How it works</a>
+    <a class="wd-link" href="security.html" aria-current="page">Security</a>
+    <a class="wd-link" href="api.html">API</a>
+    <a class="wd-link" href="demo.html">Demo script</a>
+    <a class="wd-link" href="diagrams.html">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>Security</h1>
+    <p class="wd-lead">What ProofBox protects, how, and what is not protected yet.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> No container or VM runs, and the app makes no calls to Vultr or any other external service. Results such as "blocked", "OOM-killed" and "destroyed" come from software rules in <code>MockSandbox</code>; they are not evidence of real isolation.</p>
+
+  <!-- workdocs:begin id=assets -->
+  <section id="assets">
+    <h2>Assets and trust boundaries</h2>
+    <p><strong>Protected:</strong> host secrets (Vultr and app keys), the host machine and its network (cloud metadata, loopback, private ranges), compute budget (sandbox slots), each user's runs and the human decision on them, user data passed into runs (messages, CSV files), and the integrity of receipts.</p>
+    <p><strong>Who the caller is:</strong> the <em>session principal</em> — a random id the server puts in an HttpOnly, SameSite=Strict, HMAC-signed cookie (<code>pb_session</code>) from <code>POST /api/session</code>. Plans and runs record that principal as <code>owner</code>; list, read, dispatch and confirm only ever reach the caller's own objects. The optional access token (<code>PROOFBOX_DEMO_TOKEN</code>) only lets a caller <em>start</em> a session; it is never an identity, and client-supplied headers such as <code>x-forwarded-for</code> are not an identity either.</p>
+    <p><strong>Untrusted inputs:</strong> the LLM's plan (it can be wrong, or prompt-injected by pages and data it reads), every HTTP request (body, headers, <code>Host</code>, <code>Origin</code>, cookies), and anything the sandboxed code or browser produces. Safety therefore lives in server code (access checks, policy, orchestrator, <code>runInSandbox</code>), not in the model's output or the UI.</p>
+    <p><strong>Exposure modes:</strong> <em>local</em> (default) answers only requests whose <code>Host</code> is loopback; <em>public</em> (<code>PROOFBOX_PUBLIC=1</code>) accepts any host but refuses to start without the token and a stable signing key.</p>
+    <p><strong>In this build the sandbox boundary is simulated:</strong> <code>MockSandbox</code> does not execute user code, so no kernel, container or VM tests the host-isolation claims. Mock unit tests prove the rules, never real isolation.</p>
+    <p class="wd-source">Source: <code>src/lib/access.ts</code> (header comment), <code>src/lib/config.ts:exposure</code>, <code>src/lib/policy.ts</code> (header comment), <code>src/lib/sandbox/mock-sandbox.ts</code> (header comment)</p>
+  </section>
+  <!-- workdocs:end id=assets -->
+
+  <!-- workdocs:begin id=threats -->
+  <section id="threats">
+    <h2>Threats and controls</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Threat</th><th>Control</th><th>Where</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>A stranger approves someone else's paused submit</td><td><code>confirmStep</code> looks the run up by owner (<code>ownRun</code>); anyone else gets the same 404 as for a missing run</td><td><code>src/lib/orchestrator.ts:64-68</code>, <code>src/app/api/runs/[id]/confirm/route.ts</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Reading or listing other users' runs</td><td><code>GET /api/runs</code> lists only <code>runsOf(principal)</code>; <code>GET /api/runs/:id</code> → 404 unless the caller owns it</td><td><code>src/lib/store.ts:34-43</code>, <code>src/app/api/runs/route.ts</code>, <code>src/app/api/runs/[id]/route.ts</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Using the API without a session; forged or replayed cookies</td><td><code>requireSession</code> on chat, runs, run, confirm and exec (401); HMAC-SHA256 cookie with expiry (<code>SESSION_TTL_MS</code>, 12 h), constant-time compare, bound to a hash of the token so rotating it ends all sessions</td><td><code>src/lib/access.ts:35-70</code>, <code>:123-129</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Another website rides the session (CSRF) or rebinds DNS to the local app</td><td>Cookie <code>HttpOnly; SameSite=Strict</code> (+ <code>Secure</code> in public mode); cross-origin <code>Origin</code> on a POST → 403; local mode answers only loopback <code>Host</code> → 403 otherwise</td><td><code>src/lib/access.ts:96-121</code>, <code>:131-140</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Exposed without protection by mistake</td><td><code>PROOFBOX_PUBLIC=1</code> without <code>PROOFBOX_DEMO_TOKEN</code> (≥ 16 characters) or <code>RECEIPT_SIGNING_KEY</code> → the server exits at start; every API request also answers 503 while the config is invalid</td><td><code>src/lib/config.ts:140-156</code>, <code>src/instrumentation.ts</code>, <code>src/lib/startup.ts</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Plan re-dispatched to multiply work</td><td>Plans are single-use and owned: a foreign <code>planId</code> → 404, a second dispatch → 409</td><td><code>src/lib/orchestrator.ts:33-51</code>, <code>src/app/api/runs/route.ts</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>One caller fills the queue or starves others (free compute, DoS)</td><td>Per principal: chat 20/min, runs 10/min, exec 20/min, 2 active runs; globally 8 running runs. <code>SlotPool</code>: 3 slots, at most 2 per principal, a bounded queue (12 total, 4 per principal), round-robin by principal, bounded waits (exec 5 s, run step 120 s) → 429; unanswered gates are denied after 10 min</td><td><code>src/lib/sandbox/slots.ts</code>, <code>src/lib/config.ts:60-102</code>, <code>src/lib/orchestrator.ts:36-40,78-91</code></td><td><span class="wd-tag real">implemented</span>; in memory, one process</td></tr>
+        <tr><td>Spoofed <code>x-forwarded-for</code> to dodge limits</td><td>Never read unless <code>PROOFBOX_TRUST_PROXY=&lt;hops&gt;</code>; then the entry that many places from the right; <code>x-real-ip</code> ignored. Limits key on the principal either way</td><td><code>src/lib/rate-limit.ts:29-48</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>LLM omits the containment probe</td><td><code>enforcePolicy</code> appends standard probes</td><td><code>src/lib/policy.ts:142-151</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>LLM marks a normal step as a probe so a block counts as success</td><td>LLM-set probe flags are cleared</td><td><code>src/lib/policy.ts:129-134</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>LLM drops confirmation on a submit</td><td>Forced in policy, re-checked in the orchestrator</td><td><code>src/lib/policy.ts:135-138</code>, <code>src/lib/orchestrator.ts:101-107</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Prompt injection widens egress</td><td>Allowlist = hosts the user typed ∩ server list; clamped again in <code>runInSandbox</code></td><td><code>src/lib/policy.ts:153-156</code>, <code>src/lib/sandbox/index.ts:66-67</code></td><td><span class="wd-tag real">implemented</span> rules; <span class="wd-tag mock">simulated</span> network</td></tr>
+        <tr><td>Malformed or oversized plan</td><td><code>validatePlan</code> → 502, nothing runs</td><td><code>src/lib/policy.ts:78-109</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Client sends its own allowlist, steps or a submit</td><td><code>egressAllowlist</code> in the exec body → 400; exec allows only navigate/screenshot/fill; <code>/api/runs</code> takes only a stored <code>planId</code></td><td><code>src/app/api/sandbox/exec/route.ts:11,41</code>, <code>src/app/api/runs/route.ts</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Secret read inside the sandbox</td><td><code>buildSandboxEnv</code> drops the host env; <code>VULTR_*</code>/<code>PROOFBOX_*</code> secrets kept only as names with <code>[REDACTED]</code></td><td><code>src/lib/sandbox/redact.ts:26-49</code></td><td><span class="wd-tag real">implemented</span> env building; <span class="wd-tag mock">simulated</span> sandbox</td></tr>
+        <tr><td>Secret leaks in output</td><td><code>redactText</code> on stdout, stderr and text artifacts (host secret values + <code>sk-</code>, <code>gh*_</code>, AWS key id, JWT shapes)</td><td><code>src/lib/sandbox/redact.ts:52-73</code>, <code>src/lib/sandbox/index.ts:84-92</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Reach metadata, loopback, private, reserved or multicast ranges</td><td><code>isForbiddenTarget</code> → <code>classifyHost</code>: IPv4 and IPv6 literals parsed (mapped, compatible, NAT64, 6to4, Teredo forms judged by the IPv4 inside), 198.18/15, 224/4, 240/4, TEST-NETs, ULA, link-local, multicast, plus <code>localhost.</code>, <code>*.internal</code>, <code>*.local</code>; then the allowlist</td><td><code>src/lib/sandbox/addresses.ts</code>, <code>src/lib/sandbox/fixtures.ts:75-80</code></td><td><span class="wd-tag real">implemented</span> for literals and names; <span class="wd-tag none">none</span> after DNS resolution; <span class="wd-tag mock">simulated</span> network</td></tr>
+        <tr><td>Read host files, <code>docker ps</code>, escape</td><td>Pattern rules in <code>MockSandbox</code></td><td><code>src/lib/sandbox/mock-sandbox.ts:61,69-81,120-128</code></td><td><span class="wd-tag mock">simulated</span></td></tr>
+        <tr><td>Memory bomb, infinite loop</td><td><code>resolveLimits</code> ceilings (30 s, 1024 MiB); mock kill 137 / 124</td><td><code>src/lib/config.ts:24-32</code>, <code>src/lib/sandbox/mock-sandbox.ts:222-240</code></td><td><span class="wd-tag mock">simulated</span> enforcement</td></tr>
+        <tr><td>A signed receipt holds a wrong result, or simulated output passes as real</td><td>The print emulator evaluates only exact Python integer arithmetic (<code>evalPythonInt</code>, BigInt, no host <code>eval</code>/<code>Function</code>); anything else prints <code>&lt;mock: not evaluated: …&gt;</code>. Non-empty mock stderr starts with <code>[mock] simulated stderr — …</code> inside the signed receipt, and the UI labels the boxes "simulated by mock"</td><td><code>src/lib/sandbox/py-arith.ts</code>, <code>src/lib/sandbox/mock-sandbox.ts:14,346</code>, <code>src/components/ReceiptViewer.tsx:148-149</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Sandbox left running</td><td><code>destroy()</code> in <code>finally</code>; isolation read after destroy; the slot is released in an inner <code>finally</code></td><td><code>src/lib/sandbox/index.ts:114-125</code></td><td><span class="wd-tag real">implemented</span> lifecycle; mock session</td></tr>
+        <tr><td>Receipt edited afterwards</td><td>sha256 + Ed25519 over the whole canonical receipt</td><td><code>src/lib/sandbox/signing.ts:65-74</code>, <code>src/lib/receipt-canonical.ts</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Bad or unstable signing key</td><td><code>RECEIPT_SIGNING_KEY</code> validated at server start (base64, PKCS#8, Ed25519); a bad key stops the server and the message never contains the key</td><td><code>src/lib/sandbox/signing.ts:23-46</code>, <code>src/lib/startup.ts</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Verifier trusts the wrong key source</td><td><code>verify-receipt</code> has no default <code>--base</code>; <code>--key</code> pins a key, <code>--key-id</code> pins its id; exit 0 valid, 1 invalid, 2 usage, 3 key unavailable</td><td><code>scripts/verify-receipt.mjs</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Badge claims containment without evidence</td><td><code>containmentVerdict</code> needs <code>destroyed</code>, <code>hostTouched === false</code>, a seal, and for probes a block or a kill</td><td><code>src/lib/containment.ts</code></td><td><span class="wd-tag real">implemented</span> logic; the mock writes its own evidence, so the badge says <code>CONTAINED (SIMULATED)</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>Tests (2026-11-07, mock mode): <code>npm test</code> 117/117 — <code>tests/confinement.test.ts</code> (47), <code>tests/hardening.test.ts</code> (44: address ranges, Python arithmetic, stderr label, <code>x-forwarded-for</code>, verify-receipt exit codes) and <code>tests/access-model.test.ts</code> (26: sessions, Host/Origin, config refusal, signing key, slot pool fairness and bounds, ownership, single-use plans). Against a running server: <code>tests/server-policy.probe.mjs</code> 82/82, <code>tests/adversarial.probe.mjs</code> 30/30 without a token and 32/32 with one (two principals, confirm hijack and replay, queue flood, XFF, receipts), and <code>tests/config.probe.mjs</code> 17/17 (refuse to start, stable key, Host guard, cookie flags) — each with the token unset and set. The same adversarial files fail against the pre-fix code (22 of 30 probe checks, 32 of 43 unit checks, 10 of 17 config checks).</p>
+    <p>Diagrams of these controls: <a href="diagrams/workflow-policy.html">control-plane policy</a> (plan validation, probes, forced confirm, egress clamp), <a href="diagrams/sequence-confirm-gate.html">human gate</a> (owner-only decision) and <a href="diagrams/dataflow-receipt.html">receipt pipeline</a> (redaction, seal after <code>destroy()</code>, verification). All label the mock enforcement as simulated; see <a href="diagrams.html">Diagrams</a>.</p>
+    <p class="wd-source">Source: files and lines in the table, read on 2026-11-07 after the security fixes; the full before/after matrix is in <code>docs/reviews/2026-11-07-security-fixes-report.md</code></p>
+  </section>
+  <!-- workdocs:end id=threats -->
+
+  <!-- workdocs:begin id=secrets -->
+  <section id="secrets">
+    <h2>Secrets handling</h2>
+    <ul>
+      <li>Secrets are supplied only as environment variables: <code>VULTR_INFERENCE_API_KEY</code>, <code>VULTR_SANDBOX_TOKEN</code>, <code>VULTR_API_KEY</code>, <code>PROOFBOX_DEMO_TOKEN</code>, <code>PROOFBOX_SESSION_SECRET</code>, <code>RECEIPT_SIGNING_KEY</code>. <code>.env.example</code> lists the names with empty values; no secret is needed in local mock mode.</li>
+      <li>The access token is compared in constant time and only on <code>POST /api/session</code>; the browser keeps it in memory, never in storage. The session cookie is HttpOnly, so page scripts cannot read it.</li>
+      <li><code>PROOFBOX_SESSION_SECRET</code> (at least 32 characters) signs session cookies; unset = a random secret per process, so sessions end on restart, like the in-memory runs they own.</li>
+      <li>Inside a sandbox only <code>LANG</code>, <code>TZ</code> and a fixed <code>HOME</code>/<code>USER</code>/<code>PATH</code> are forwarded; scoped secrets appear as <code>[REDACTED]</code>; every other host variable is dropped.</li>
+      <li>Mock mode adds a public, fake canary key on the host so the demo can show redaction; it is not a secret (<code>src/lib/sandbox/index.ts:13-14</code>).</li>
+      <li>Signing key: <code>RECEIPT_SIGNING_KEY</code> is a base64 PKCS#8 DER Ed25519 private key, validated at start. Use one stable key per deployment (generate it once with the command in <code>.env.example</code>, store it outside the repository) so receipts keep verifying after restarts; public mode requires it. Without it an ephemeral key is generated per process (<code>"ephemeral": true</code>). The signature proves a receipt was not changed after sealing; it does not prove the server told the truth when sealing.</li>
+      <li>Startup and error messages name variables, never values. Never put keys in the repository, logs, screenshots or the client bundle.</li>
+    </ul>
+    <p class="wd-source">Source: <code>.env.example</code> (names only), <code>src/lib/access.ts:29-33</code>, <code>src/lib/sandbox/redact.ts</code>, <code>src/lib/sandbox/signing.ts</code>, <code>src/lib/startup.ts</code></p>
+  </section>
+  <!-- workdocs:end id=secrets -->
+
+  <!-- workdocs:begin id=gaps -->
+  <section id="gaps">
+    <h2>Known gaps</h2>
+    <p>Re-checked against the code on 2026-11-07, after the security fixes. Items fixed that day (confirm by anyone, unprotected chat/runs, unbounded queue and starved exec, trusted <code>x-forwarded-for</code>, readable runs, missing address ranges, wrong mock arithmetic, unlabelled stderr, <code>verify-receipt</code> defaults, late key failure) are listed in <code>docs/reviews/2026-11-07-security-fixes-report.md</code>. This is not an exhaustive audit.</p>
+    <div class="wd-table"><table>
+      <thead><tr><th>#</th><th>Issue</th><th>Evidence</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>No real isolation at all: container, VM, cgroups and network are simulated</td><td><code>src/lib/sandbox/mock-sandbox.ts</code>, <code>src/lib/sandbox/vultr-sandbox.ts</code></td><td>submission blocker</td></tr>
+        <tr><td>2</td><td>Sybil sessions: anyone holding the access token (or anyone at all in local mode) can start many sessions, and per-principal limits apply per session. Global caps bound the damage (60 new sessions/min, 8 running runs, 3 slots, queue of 12), and with <code>PROOFBOX_TRUST_PROXY</code> minting is also limited per client IP</td><td><code>src/app/api/session/route.ts</code>, <code>src/lib/config.ts:95-102</code></td><td>medium on a public deploy</td></tr>
+        <tr><td>3</td><td>No check after DNS resolution: a name that resolves (or re-resolves, rebinding) to a private address is stopped only by the allowlist. The mock never resolves names, so this cannot be exercised here; the real egress proxy must resolve once, check the address with <code>classifyHost</code> and connect to that address</td><td><code>src/lib/sandbox/addresses.ts</code> (header comment)</td><td>low today; must be designed into the real proxy</td></tr>
+        <tr><td>4</td><td>Sessions, runs, rate limits and the slot pool are in memory, single process: a restart clears them, and several processes would not share limits or sessions (unless <code>PROOFBOX_SESSION_SECRET</code> is shared, and even then not the limits)</td><td><code>src/lib/store.ts</code>, <code>src/lib/rate-limit.ts</code>, <code>src/lib/sandbox/slots.ts</code></td><td>low on one VM</td></tr>
+        <tr><td>5</td><td>A <code>--base</code> key in <code>verify-receipt</code> comes from the server that issued the receipt: integrity, not independent trust. Pin <code>--key</code>/<code>--key-id</code> obtained earlier for that</td><td><code>scripts/verify-receipt.mjs</code> (header)</td><td>low</td></tr>
+        <tr><td>6</td><td>The local-mode <code>Host</code> check stops accidental exposure through a proxy and DNS rebinding of the app, but a client that connects to an exposed port directly can send <code>Host: localhost</code>. Bind to 127.0.0.1 in local mode; use <code>PROOFBOX_PUBLIC=1</code> for anything reachable</td><td><code>src/lib/access.ts:96-114</code></td><td>low</td></tr>
+        <tr><td>7</td><td>A request that arrives in the instant between "Ready" and the startup check could still be served before a bad key stops the process; config errors are re-checked per request (503), the key itself is not</td><td><code>src/instrumentation.ts</code>, <code>src/lib/access.ts:104-108</code></td><td>low</td></tr>
+        <tr><td>8</td><td>The mock print emulator now refuses floats and true division (<code>print(0.1+0.2)</code> → "not evaluated"), which is honest but shows less than before</td><td><code>src/lib/sandbox/py-arith.ts</code></td><td>cosmetic</td></tr>
+      </tbody>
+    </table></div>
+    <p>Before any public deploy: set <code>PROOFBOX_PUBLIC=1</code>, <code>PROOFBOX_DEMO_TOKEN</code>, <code>RECEIPT_SIGNING_KEY</code> (the server refuses to start otherwise), set <code>PROOFBOX_TRUST_PROXY=1</code> only behind exactly one proxy that appends <code>x-forwarded-for</code>, and run one process.</p>
+    <p class="wd-source">Source: the files and lines listed; probe results from <code>tests/adversarial.probe.mjs</code>, <code>tests/config.probe.mjs</code> and <code>tests/server-policy.probe.mjs</code> against local mock servers on 2026-11-07</p>
+  </section>
+  <!-- workdocs:end id=gaps -->
+
+  <!-- workdocs:begin id=report -->
+  <section id="report">
+    <h2>Reporting a vulnerability</h2>
+    <p>Not stated: the project has no <code>SECURITY.md</code> and no published security contact. Until one exists, report privately to the maintainer rather than in a public issue.</p>
+    <p class="wd-source">Source: project tree (no <code>SECURITY.md</code>), <code>README.md</code></p>
+  </section>
+  <!-- workdocs:end id=report -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07, updated the same day after the security fixes (the project has no git history); sources: src/lib/access.ts, src/lib/policy.ts, src/lib/orchestrator.ts, src/lib/store.ts, src/lib/sandbox/*, src/lib/rate-limit.ts, src/lib/config.ts, src/lib/startup.ts, src/instrumentation.ts, src/lib/containment.ts, src/app/api/*, scripts/verify-receipt.mjs, tests/, .env.example. Static page: re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

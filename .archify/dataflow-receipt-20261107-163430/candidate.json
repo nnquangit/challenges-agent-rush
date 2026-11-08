@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "ProofBox receipt pipeline: scrub, seal after destroy(), verify anywhere",
+    "output": ".archify/dataflow-receipt-20261107-163430/dataflow-receipt.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      560
+    ]
+  },
+  "stages": [
+    {
+      "label": "Sandbox (simulated)"
+    },
+    {
+      "label": "Scrub"
+    },
+    {
+      "label": "Canonicalize"
+    },
+    {
+      "label": "Seal"
+    },
+    {
+      "label": "Verify"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "mock",
+      "type": "cloud",
+      "label": "MockSandbox",
+      "sublabel": "exec + artifacts",
+      "tag": "simulated",
+      "stage": 0,
+      "row": 0
+    },
+    {
+      "id": "iso",
+      "type": "security",
+      "label": "isolation()",
+      "sublabel": "read after destroy()",
+      "tag": "self-reported",
+      "stage": 0,
+      "row": 2
+    },
+    {
+      "id": "redact",
+      "type": "security",
+      "label": "redactText()",
+      "sublabel": "secrets + token shapes",
+      "tag": "redact.ts",
+      "stage": 1,
+      "row": 0
+    },
+    {
+      "id": "receipt",
+      "type": "backend",
+      "label": "Receipt fields",
+      "sublabel": "limits, env, timestamps",
+      "tag": "runInSandbox",
+      "stage": 1,
+      "row": 2
+    },
+    {
+      "id": "canon",
+      "type": "backend",
+      "label": "receiptPayload()",
+      "sublabel": "sorted-key JSON",
+      "tag": "receipt-canonical.ts",
+      "stage": 2,
+      "row": 1
+    },
+    {
+      "id": "seal",
+      "type": "security",
+      "label": "sealReceipt()",
+      "sublabel": "sha256 + Ed25519",
+      "tag": "signing.ts",
+      "stage": 3,
+      "row": 1
+    },
+    {
+      "id": "key",
+      "type": "database",
+      "label": "Signing key",
+      "sublabel": "env key or ephemeral",
+      "tag": "RECEIPT_SIGNING_KEY",
+      "stage": 3,
+      "row": 2
+    },
+    {
+      "id": "browser",
+      "type": "frontend",
+      "label": "ReceiptViewer",
+      "sublabel": "WebCrypto verify",
+      "tag": "browser",
+      "stage": 4,
+      "row": 1
+    },
+    {
+      "id": "cli",
+      "type": "external",
+      "label": "verify-receipt.mjs",
+      "sublabel": "exit 0 / 1",
+      "tag": "offline",
+      "stage": 4,
+      "row": 2
+    }
+  ],
+  "flows": [
+    {
+      "id": "raw-output",
+      "from": "mock",
+      "to": "redact",
+      "label": "raw output",
+      "variant": "dashed"
+    },
+    {
+      "id": "scrubbed",
+      "from": "redact",
+      "to": "receipt",
+      "label": "scrubbed output",
+      "variant": "emphasis",
+      "labelDy": 25
+    },
+    {
+      "id": "isolation",
+      "from": "iso",
+      "to": "receipt",
+      "label": "isolation report",
+      "variant": "security"
+    },
+    {
+      "id": "whole",
+      "from": "receipt",
+      "to": "canon",
+      "label": "whole receipt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "payload",
+      "from": "canon",
+      "to": "seal",
+      "label": "payload bytes",
+      "variant": "emphasis"
+    },
+    {
+      "id": "private-key",
+      "from": "key",
+      "to": "seal",
+      "label": "private key",
+      "variant": "security"
+    },
+    {
+      "id": "to-browser",
+      "from": "seal",
+      "to": "browser",
+      "label": "GET /api/runs/:id",
+      "variant": "default"
+    },
+    {
+      "id": "public-key",
+      "from": "key",
+      "to": "cli",
+      "label": "public key (spki)",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "What is covered",
+      "items": [
+        "sha256 and Ed25519 cover the canonical JSON of the whole receipt minus sha256/signature: input, output, artifacts, limits, env, isolation, clock, sealedAt",
+        "runInSandbox() seals only after destroy(), so isolation.destroyed is inside the signed payload"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Two verifiers, same bytes",
+      "items": [
+        "ReceiptViewer and scripts/verify-receipt.mjs both call receiptPayload() and fetch GET /api/receipts/public-key",
+        "verify-receipt defaults to --base http://localhost:3000; pass --key or --base for another server"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Limits of the proof",
+      "items": [
+        "A signature proves the receipt was not edited after sealing, not that isolation happened",
+        "In mock mode isolation is simulated: true and written by MockSandbox itself",
+        "Without RECEIPT_SIGNING_KEY the key is ephemeral; old receipts fail after a restart"
+      ]
+    }
+  ]
+}

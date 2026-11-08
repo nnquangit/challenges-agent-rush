@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Setup · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html">Overview</a>
+    <a class="wd-link" href="setup.html" aria-current="page">Setup</a>
+    <a class="wd-link" href="how-it-works.html">How it works</a>
+    <a class="wd-link" href="security.html">Security</a>
+    <a class="wd-link" href="api.html">API</a>
+    <a class="wd-link" href="demo.html">Demo script</a>
+    <a class="wd-link" href="diagrams.html">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>Setup</h1>
+    <p class="wd-lead">Install, configure, run, test and verify ProofBox locally in mock mode.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> No container or VM runs, and the app makes no calls to Vultr or any other external service. Results such as "blocked", "OOM-killed" and "destroyed" come from software rules in <code>MockSandbox</code>; they are not evidence of real isolation.</p>
+
+  <!-- workdocs:begin id=prereq -->
+  <section id="prereq">
+    <h2>Prerequisites</h2>
+    <ul>
+      <li><strong>Node.js and npm.</strong> No version is pinned: <code>package.json</code> has no <code>engines</code> field and there is no <code>.nvmrc</code>. The scripts use <code>node --import tsx</code> and <code>--disable-warning</code>, which need a recent Node; the checks for these pages ran on Node v24.18.0.</li>
+      <li><strong>Dependencies</strong> (ranges from <code>package.json</code>, exact versions in the committed <code>package-lock.json</code>): <code>next ^16.4.5</code>, <code>react ^19.3.1</code>, <code>react-dom ^19.3.1</code>; dev: <code>typescript ^5.9</code>, <code>tsx ^4.23.15</code>, <code>tailwindcss ^4.3.4</code>, <code>@tailwindcss/postcss ^4.3.4</code>, <code>@types/node ^22</code>.</li>
+      <li><strong>Accounts and services:</strong> none in mock mode. The Vultr variables in <code>.env.example</code> are for a later phase, and the providers that would use them are stubs.</li>
+      <li>Optional: <code>python3</code> to serve these docs, <code>curl</code> for the API examples, a Chromium-based browser for in-browser Ed25519 verification.</li>
+    </ul>
+    <p class="wd-source">Source: <code>package.json</code>, <code>.env.example</code>, <code>README.md</code></p>
+  </section>
+  <!-- workdocs:end id=prereq -->
+
+  <!-- workdocs:begin id=install -->
+  <section id="install">
+    <h2>Install</h2>
+<pre><code>npm install</code></pre>
+    <p>A <code>package-lock.json</code> is committed, so <code>npm ci</code> also gives a clean, locked install.</p>
+    <p class="wd-source">Source: <code>README.md</code> "Quick start", <code>package-lock.json</code></p>
+  </section>
+  <!-- workdocs:end id=install -->
+
+  <!-- workdocs:begin id=config -->
+  <section id="config">
+    <h2>Configuration</h2>
+    <p>No configuration file is required; mock mode is the default. To change a limit, export the variable in the shell or copy <code>.env.example</code> to <code>.env.local</code> (Next.js reads it). Never commit real keys. Names and defaults come from <code>src/lib/config.ts</code> and <code>src/lib/sandbox/signing.ts</code>; integer variables fall back to the default when unset, not a number, or not positive.</p>
+    <div class="wd-table"><table>
+      <thead><tr><th>Variable</th><th>Purpose</th><th>Default in code</th><th>Needed?</th></tr></thead>
+      <tbody>
+        <tr><td><code>MOCK</code></td><td>Only the exact value <code>0</code> selects the Vultr providers (stubs)</td><td>mock on</td><td>no</td></tr>
+        <tr><td><code>SANDBOX_TIMEOUT_MS</code></td><td>Per-step time cap (hard ceiling 30000)</td><td><code>5000</code></td><td>no</td></tr>
+        <tr><td><code>SANDBOX_MEMORY_MB</code></td><td>Per-step memory cap (hard ceiling 1024)</td><td><code>256</code></td><td>no</td></tr>
+        <tr><td><code>SANDBOX_EGRESS_ALLOWLIST</code></td><td>Comma-separated hosts the sandboxed browser may reach; planner and clients cannot add hosts</td><td><code>shop.example.com,example.com,docs.example.com</code></td><td>no</td></tr>
+        <tr><td><code>SANDBOX_MAX_CONCURRENT</code></td><td>Sandboxes alive at once, across all runs</td><td><code>3</code></td><td>no</td></tr>
+        <tr><td><code>SANDBOX_EXEC_PER_MINUTE</code></td><td>Ad-hoc <code>/api/sandbox/exec</code> calls per client key per minute</td><td><code>20</code></td><td>no</td></tr>
+        <tr><td><code>PROOFBOX_DEMO_TOKEN</code></td><td>If set, <code>/api/sandbox/exec</code> requires header <code>x-proofbox-token</code> (other routes are not protected)</td><td>unset</td><td>recommended on any public deploy</td></tr>
+        <tr><td><code>RECEIPT_SIGNING_KEY</code></td><td>Base64 PKCS#8 DER Ed25519 private key; unset = new ephemeral key at each process start</td><td>unset</td><td>for receipts that must verify after a restart</td></tr>
+        <tr><td><code>VULTR_INFERENCE_BASE_URL</code>, <code>VULTR_INFERENCE_MODEL</code>, <code>VULTR_INFERENCE_API_KEY</code>, <code>VULTR_SANDBOX_HOST</code>, <code>VULTR_SANDBOX_TOKEN</code>, <code>VULTR_API_KEY</code></td><td>Vultr phase only; the stubs make no network calls</td><td>base URL <code>https://api.vultrinference.com/v1</code>; others empty</td><td>no</td></tr>
+      </tbody>
+    </table></div>
+    <p><code>.env.example</code> contains a one-line command that generates a signing key. Keep generated keys out of the repository and out of screenshots.</p>
+    <p class="wd-source">Source: <code>src/lib/config.ts</code>, <code>src/lib/sandbox/signing.ts</code>, <code>src/lib/sandbox/vultr-sandbox.ts</code>, <code>.env.example</code> (names only)</p>
+  </section>
+  <!-- workdocs:end id=config -->
+
+  <!-- workdocs:begin id=run -->
+  <section id="run">
+    <h2>Run</h2>
+<pre><code>npm run dev                  # development server (next dev)
+npm run build &amp;&amp; npm start    # production build, then next start</code></pre>
+    <p>Next.js serves on port 3000 by default, as the README states (<code>http://localhost:3000</code>); the project does not set another port. If 3000 is taken, pass a port and use that URL everywhere, for example <code>npx next start -p 3117 -H 127.0.0.1</code>. The checks for these pages used an existing production build with <code>next start -p 3148 -H 127.0.0.1</code>.</p>
+    <p class="wd-source">Source: <code>package.json</code> scripts, <code>README.md</code> "Quick start"</p>
+  </section>
+  <!-- workdocs:end id=run -->
+
+  <!-- workdocs:begin id=test -->
+  <section id="test">
+    <h2>Test</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Command</th><th>What it does</th><th>Needs a server?</th><th>Result on 2026-11-07</th></tr></thead>
+      <tbody>
+        <tr><td><code>npm run typecheck</code></td><td><code>tsc --noEmit</code></td><td>no</td><td>clean</td></tr>
+        <tr><td><code>npm test</code></td><td>Unit tests in <code>tests/*.test.ts</code>: forbidden targets, secret hygiene, limits, policy, receipts, rate limit</td><td>no</td><td>47/47 pass</td></tr>
+        <tr><td><code>npm run build</code></td><td>Production build</td><td>no</td><td>not re-run (the existing build was newer than every source file)</td></tr>
+        <tr><td><code>npm run smoke -- &lt;app URL&gt;</code></td><td>E2E: the three presets, policy, ad-hoc exec (<code>scripts/smoke.mjs</code>; default URL <code>http://localhost:3000</code>)</td><td>yes</td><td>29/29 pass</td></tr>
+        <tr><td><code>npm run verify-receipt -- receipt.json --base &lt;app URL&gt;</code></td><td>Offline sha256 + Ed25519 check of a downloaded receipt</td><td>yes, unless you pass <code>--key &lt;base64 spki&gt;</code></td><td>valid receipt exit 0; tampered copy exit 1</td></tr>
+        <tr><td><code>node --import tsx tests/server-policy.probe.mjs &lt;app URL&gt;</code></td><td>Black-box policy probe (not part of <code>npm test</code>; writes to <code>PB_OUT</code>, default <code>/tmp/pb-test</code>)</td><td>yes</td><td>80 pass, 1 fail: the known <code>x-forwarded-for</code> bypass, so it exits 1</td></tr>
+      </tbody>
+    </table></div>
+    <p>These results prove the control plane in mock mode, not real isolation.</p>
+    <p class="wd-source">Source: <code>package.json</code> scripts, <code>scripts/smoke.mjs</code>, <code>scripts/verify-receipt.mjs</code>, <code>tests/</code></p>
+  </section>
+  <!-- workdocs:end id=test -->
+
+  <!-- workdocs:begin id=verify -->
+  <section id="verify">
+    <h2>Verify the install</h2>
+    <ol>
+      <li>Open the app URL. The header shows <code>MOCK MODE · no Vultr calls</code>.</li>
+      <li><code>curl -s &lt;app URL&gt;/api/status</code> returns <code>"mode":"mock"</code>, <code>"limits":{"timeoutMs":5000,"memoryMb":256}</code>, the egress allowlist and <code>"sandboxes":{"active":0,"queued":0,"max":3}</code>.</li>
+      <li>Click the preset <strong>Prove-It Python</strong>, then <strong>Dispatch to sandbox →</strong>. The chat ends with "Run succeeded: 3/3 steps succeeded" and the receipt badge reads <code>CONTAINED (SIMULATED)</code>.</li>
+      <li>In a receipt, click <strong>verify</strong>: "✓ sha256 recomputed in your browser · ✓ Ed25519 signature valid" appears.</li>
+    </ol>
+    <p>All four were observed in Chromium on 2026-11-07.</p>
+    <p class="wd-source">Source: <code>src/app/api/status/route.ts</code>, <code>src/components/ProofBoxApp.tsx</code>, <code>src/components/ReceiptViewer.tsx</code>, <code>src/components/IsolationBadge.tsx</code></p>
+  </section>
+  <!-- workdocs:end id=verify -->
+
+  <!-- workdocs:begin id=trouble -->
+  <section id="trouble">
+    <h2>Troubleshooting</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Port 3000 in use, or the URL shows a different service</td><td>Another process listens on 3000</td><td>Start on another port (<code>-p 3117</code>) and use that URL for the browser, smoke and verify commands</td></tr>
+        <tr><td><code>verify-receipt</code> fails or warns about a keyId mismatch</td><td>Without <code>--base</code> it fetches the key from <code>http://localhost:3000</code> (<code>scripts/verify-receipt.mjs:27</code>), which may be another service; or the server restarted with a new ephemeral key</td><td>Always pass <code>--base &lt;app URL&gt;</code>; set <code>RECEIPT_SIGNING_KEY</code> so the key survives restarts</td></tr>
+        <tr><td>Exit code 2 from <code>verify-receipt</code></td><td>No receipt file given</td><td><code>npm run verify-receipt -- receipt.json --base &lt;app URL&gt;</code></td></tr>
+        <tr><td>Errors naming <code>VultrSandbox</code> or <code>VultrInferenceLlm</code></td><td><code>MOCK=0</code> was set; the Vultr providers are stubs</td><td>Unset <code>MOCK</code> or set it to <code>1</code></td></tr>
+        <tr><td><code>401 missing or wrong x-proofbox-token</code></td><td><code>PROOFBOX_DEMO_TOKEN</code> is set on the server</td><td>Send the header <code>x-proofbox-token</code> with the configured value (never paste it into docs)</td></tr>
+        <tr><td><code>429</code> from <code>/api/sandbox/exec</code></td><td>Rate limit (20 per minute per client by default) or all sandbox slots busy</td><td>Wait for the time in the message, or raise the limits for local testing</td></tr>
+        <tr><td>Smoke test cannot connect</td><td><code>npm run smoke</code> needs a running server</td><td>Start the app first and pass its URL</td></tr>
+        <tr><td>Free-form code prints <code>&lt;mock: not evaluated: …&gt;</code></td><td><code>MockSandbox</code> does not execute code; only presets give meaningful output</td><td>Use the presets in mock mode</td></tr>
+      </tbody>
+    </table></div>
+    <p class="wd-source">Source: <code>scripts/verify-receipt.mjs</code>, <code>src/app/api/sandbox/exec/route.ts</code>, <code>src/lib/sandbox/vultr-sandbox.ts</code>, <code>src/lib/sandbox/mock-sandbox.ts:99</code></p>
+  </section>
+  <!-- workdocs:end id=trouble -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07 (the project has no git history); sources: package.json, package-lock.json, .env.example, src/lib/config.ts, src/lib/sandbox/signing.ts, scripts/*.mjs, tests/, README.md. Static page: re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

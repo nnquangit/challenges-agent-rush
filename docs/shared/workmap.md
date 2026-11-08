@@ -1,0 +1,103 @@
+---
+lang: en
+---
+# ProofBox
+
+Bản đồ công việc: Epic → Feature → Task → Subtask. Cập nhật bằng scripts/workmap.py add/set (xem docs-workflow).
+
+- `1` Tài liệu & quy trình
+  - `P1` Docs HTML
+    - [x] `T1` Khởi tạo docs-workflow (2026-11-06)
+- `2` Hackathon
+  - `P2` Blast Radius Zero
+    - [x] `T2` Chọn Challenge 1 và viết PLAN.md mock-first (2026-11-06) — Không đăng ký Vultr/lablab ở giai đoạn này
+    - [x] `T3` Scaffold Next.js app + MIT + README (2026-11-06) — Next 16 + React 19 + Tailwind 4 + TS 5.9; MIT; .env.example MOCK=1; build + typecheck sạch
+- `3` Docs
+  - `P3` docs-workflow
+    - [x] `T4` Init docs portal + workmap.html (2026-11-06) — init.sh + seed từ PLAN.md
+    - [x] `T5` how-it-works.html luồng plan → sandbox → receipt (2026-11-06) — Dòng chảy động + step player 14 bước theo call site; render docs/shared/how-it-works.md + 2 mục README; 375px OK
+    - [x] `T6` index.html: mô tả + lệnh chạy (2026-11-06)
+    - [x] `T7` Sơ đồ kiến trúc Archify → docs/diagrams/architecture.html (2026-11-06) — finalize pass 4 gate; chưa có link nguồn vì repo chưa có git commit
+  - `P4` README
+    - [x] `T8` README: chạy app, mock vs Vultr, containment-first (2026-11-06) — Quick start, presets, containment guarantees, API, mock vs Vultr
+- `4` Submit
+  - `P5` later
+    - [=] `T9` Đăng ký lablab + Vultr (chờ anh Quang) (2026-11-06)
+    - [=] `T10` Deploy VM Vultr + demo URL + video containment (2026-11-06)
+- `5` Product
+  - `P6` Control plane
+    - [x] `T11` Chat + plan board + run timeline UI (2026-11-06) — Kiểm bằng playwright: 1440px + 375px, console sạch
+    - [x] `T12` Human confirm trước browser final action (2026-11-06) — <dialog> mặc định focus Deny; deny → step skipped, không chạy
+    - [x] `T13` Isolation badge + artifact viewer (2026-11-06)
+  - `P7` API
+    - [x] `T14` Routes: /api/chat, /api/runs, /api/runs/:id, /api/runs/:id/confirm, /api/sandbox/exec, /api/status (2026-11-06) — chỉ dispatch planId do server sinh; submit chỉ qua run có confirm
+  - `P8` Demo presets
+    - [x] `T15` Prove-It Python, CSV Analyst, Research with Receipts (2026-11-06) — scripts/smoke.mjs: 24 check pass
+  - `P9` Kiểm thử
+    - [x] `T16` scripts/smoke.mjs — E2E 3 preset + exec ad-hoc (2026-11-06) — npm run smoke -- http://localhost:3000
+    - [x] `T17` Sửa lỗi UI: useEffect trả Promise (scrollIntoView), layout tràn viewport (2026-11-06)
+- `6` Mock
+  - `P10` LLM
+    - [x] `T18` LlmProvider + MockLlm (không gọi api.vultrinference.com) (2026-11-06) — src/lib/llm/mock-llm.ts — plan JSON theo intent code/csv/browser, repair KeyError, explain, verify (vision mock)
+    - [x] `T19` Stub VultrInferenceLlm đọc env, chỉ bật khi MOCK=0 (2026-11-06) — Chỉ khởi tạo khi MOCK=0; mọi method throw, không gọi mạng
+  - `P11` Sandbox
+    - [x] `T20` SandboxProvider interface (create/exec/artifacts/destroy) (2026-11-06) — src/lib/sandbox/provider.ts — create(taskId) → session.exec/artifacts/isolation/destroy
+    - [x] `T21` MockSandbox Pattern A: chạy code giả + receipt stdout (2026-11-06) — Fixture prove-primes, csv-analyze + print() emulator; probe env/fs/network/docker
+    - [x] `T22` MockSandbox Pattern B: browser fixture + screenshot (2026-11-06) — Fixture pages + screenshot SVG; egress allowlist; chặn 169.254.169.254/loopback/private
+    - [x] `T23` Secret redact, time/memory cap, destroy trong finally (2026-11-06) — Chỉ VULTR_/PROOFBOX_ secret hiện tên (giá trị [REDACTED]); scrub output; OOM 137 / timeout 124; destroy() trong finally
+    - [x] `T24` Stub VultrSandbox — chưa gọi mạng thật (2026-11-06) — Interface + ghi chú Docker/gVisor trên VM; throw NotImplementedInMockPhase
+- `7` Review
+  - `P12` Opus review
+    - [x] `T25` Review toàn dự án trước hạn nộp 8/11 (2026-11-06) — docs/reviews/2026-11-06-opus-review.md — 4 critical, 9 nên làm, task đề xuất
+    - [x] `T26` Sửa nhỏ: chặn IPv6/link-local/CGNAT, ép confirm cho submit, bước kẹt running (2026-11-06) — fixtures.ts, orchestrator.ts, presets.ts, .gitignore; typecheck+build+smoke 24/24
+- `8` Điều phối
+  - `P13` Thiết lập
+    - [x] `T27` Seed thư mục + plan @grokbot (2026-11-07) — Seed rsync 64 file verify sha256; workmap 1.0 migrate; plan T28-T42; Claude PID 10371
+  - `P20` Công cụ
+    - [x] `T45` Draft skill workdocs @claude (2026-11-07) — Draft ~/grokbot-export/workdocs-draft: SKILL.md (body 5715 chars), 3 references, fresh assets; checks clean (0 sha/line overlap with workmap, no forbidden strings); report in workdocs-run/report.md
+    - [x] `T47` Workdocs bản tĩnh @claude (2026-11-07) — Static English workdocs draft in ~/grokbot-export/workdocs-static-draft: 6 pages, SKILL body 6258 chars, 0 loader strings, 0 sha256 matches with workmap
+- `9` Sprint nộp bài
+  - `P14` Hiện trạng
+    - [x] `T28` Kiểm build hiện tại @claude (2026-11-07) — npm install; typecheck sạch; build đạt; smoke 24/24 trên 3107
+  - `P15` Luật control plane
+    - [x] `T29` Ép probe và confirm @claude (2026-11-07) — src/lib/policy.ts: validate plan, probe do server chèn (addedBy=policy), ép confirm submit, egress = host user ∩ allowlist server; smoke đạt
+    - [x] `T30` Khóa egress /exec @claude (2026-11-07) — exec: 400 nếu client gửi egressAllowlist, token tuỳ chọn, rate limit/IP, semaphore 3 sandbox (429); kiểm curl
+  - `P16` Receipt kiểm chứng
+    - [x] `T31` Hash phủ isolation @claude (2026-11-07) — receipt-canonical.ts + sandbox/signing.ts: sha256 + Ed25519 trên JSON chuẩn hoá toàn receipt (isolation, limits, env, clock, sealedAt), seal sau destroy; tamper test đỏ
+    - [x] `T32` Nút verify receipt @claude (2026-11-07) — ReceiptViewer: verify (WebCrypto sha256+Ed25519) + download receipt.json; GET /api/receipts/public-key; scripts/verify-receipt.mjs (exit 0/1); kiểm playwright ✓
+    - [x] `T33` Badge theo bằng chứng @claude (2026-11-07) — src/lib/containment.ts: CONTAINED/UNVERIFIED/NOT CONTAINED theo bằng chứng; hostTouched: boolean; mock hiện 'CONTAINED (SIMULATED)' + câu 'no container or VM ran'
+  - `P17` Kiểm thử
+    - [x] `T34` Test confinement unit @claude (2026-11-07) — tests/confinement.test.ts (node --test + tsx): 47/47 — forbidden targets, redact, limits, policy, receipt seal/tamper, egress clamp, semaphore, verdict, rate limit
+    - [x] `T35` Typecheck build smoke @claude (2026-11-07) — cuối sprint: typecheck 0 lỗi; npm test 47/47; build đạt; smoke 29/29 trên 3107; verify-receipt ✓ thật / ✗ bị sửa (exit 1)
+    - [x] `T44` Test toàn diện mock @claude (2026-11-07) — Báo cáo docs/reviews/2026-11-07-test-report.md: build/test/smoke/receipt/UI/docs PASS; 2 bug chính (runs không token, XFF bypass) + 5 low
+      - [x] `B1` Build, test, smoke @claude (2026-11-07) — tsc 0 lỗi, npm test 47/47, build ok, smoke 29/29 (cổng 3117)
+      - [x] `B2` Receipt tamper checks @claude (2026-11-07) — verify-receipt ok; 18 kiểu tamper đều fail; đổi thứ tự khoá vẫn ok
+      - [x] `B3` Server policy probes @claude (2026-11-07) — 84 check: 83 PASS; FAIL bypass rate limit qua XFF; /api/runs không token/rate limit
+      - [x] `B4` UI E2E qua browser @claude (2026-11-07) — 3 preset, dialog deny/Esc/approve, badge, verify ở 1440+375; console 0 lỗi
+      - [x] `B5` Docs dark và mobile @claude (2026-11-07) — 7 trang x sáng/tối x 1440/375 ok, 0 link hỏng; sơ đồ kiến trúc cũ
+    - [x] `T55` Review sẵn sàng nộp @claude (2026-11-07) — Review done: local demo GO; public deploy and submission NO-GO (mock sandbox/LLM, no Vultr/URL/repo/slides; new H1: anyone can approve a paused submit). Report docs/reviews/2026-11-07-final-readiness-review.md
+  - `P18` Sẵn sàng nộp
+    - [x] `T36` Kịch bản video demo @claude (2026-11-07) — docs/shared/demo-script.md + docs/demo.html: 7 cảnh ≤3 phút, containment moment, nói rõ mock là giả lập
+    - [x] `T37` README Vultr services @claude (2026-11-07) — README: mục 'What is simulated', 'Vultr services used' (ghi rõ chưa dùng, planned), bảng guarantees/API/layout theo luật mới
+    - [x] `T38` Docs API và security @claude (2026-11-07) — docs/security.html (threat→control→evidence, real vs simulated), docs/api.html (từ README), PAGES +3; how-it-works cập nhật policy/Ed25519; kiểm 0 lỗi console, 375px
+    - [x] `T43` Báo cáo sprint 07/11 @claude (2026-11-07) — docs/reviews/2026-11-07-sprint-report.md
+    - [x] `T46` Áp dụng workdocs @claude (2026-11-07) — 5 trang docs đã áp dụng workdocs (merge trong marker, có backup), sơ đồ archify mới, QA 24+24 lần nạp; báo cáo docs/reviews/2026-11-07-workdocs-report.md
+    - [x] `T48` Docs tĩnh tiếng Anh @claude (2026-11-07) — 6 static English pages (new setup.html), backup static-20261107-115345, QA 46 loads 0 errors/0 4xx/0 md-json requests, zip exported; report docs/reviews/2026-11-07-static-docs-report.md
+    - [x] `T49` Viết lại docs v1.1 @claude (2026-11-07) — 6 trang workdocs 1.1 tĩnh tiếng Anh + workmap 1.1; QA Chromium; báo cáo docs/reviews/2026-11-07-docs-rerun-report.md
+    - [x] `T50` Dọn repo và docs nộp @claude (2026-11-07) — Lưu trữ 70 file thừa ra ../agent-rush-archive-20261107 (log/prompt/script chạy agent, backup, review nội bộ, asset/nguồn docs cũ, sơ đồ cũ, kết quả archify); áp asset workdocs 1.1 (step player vẽ sơ đồ); README mục Documentation + Known gaps tiếng Anh; CLAUDE.md theo workdocs/workmap; QA 7 trang 375px, 0 lỗi console, 0 link hỏng
+  - `P19` Chờ anh Quang
+    - [=] `T39` DockerSandbox local thật (2026-11-07) — Cần anh Quang duyệt/tài khoản
+    - [=] `T40` Deploy lên Vultr VM (2026-11-07) — Cần anh Quang duyệt/tài khoản
+    - [=] `T41` Vultr Inference thật (2026-11-07) — Cần anh Quang duyệt/tài khoản
+    - [=] `T42` Repo GitHub công khai (2026-11-07) — Cần anh Quang duyệt/tài khoản
+  - `P21` Video demo
+    - [x] `T51` Kiểm bản quyền, chọn TTS @claude (2026-11-07) — edge-tts không có giấy phép rõ cho dùng thương mại → dùng Kokoro-82M (Apache-2.0, chạy local, giọng af_heart); nhạc nền tự tổng hợp bằng ffmpeg; font Inter (OFL); không dùng logo Vultr/lablab
+    - [x] `T52` Video giới thiệu Remotion @claude (2026-11-07) — video/: Remotion ProofBoxDemo 10 cảnh, giọng Kokoro af_heart (ASR kiểm phát âm, sửa Vultr→Vulture), nhạc ffmpeg; npm run render → docs/media/proofbox-demo.mp4 2:37, -16 LUFS
+    - [x] `T53` Quay app mock + ghép demo @claude (2026-11-07) — Quay app mock bằng Playwright (4 đoạn), cắt khớp lời (cut-clips.py), poster + SRT/VTT 37 câu; nhúng demo.html#video, phụ đề chạy trong Chromium
+  - `P22` Sơ đồ docs
+    - [x] `T54` Sơ đồ theo workmap @claude-fork (2026-11-07) — 6 sơ đồ archify (kiến trúc hiện tại + 2 sequence, lifecycle, dataflow receipt, workflow policy, kiến trúc Vultr planned) finalize pass; trang docs/diagrams.html theo P6/P7/P15/P16/P19; nav Diagrams; iframe ở index; link từ how-it-works/security; chưa xem bằng mắt đủ (pane ẩn)
+  - `P23` Bảo mật demo
+    - [x] `T56` Sửa ownership và API @claude (2026-11-07) — Session principal (HMAC cookie) owns plans/runs; owner-only list/read/confirm/dispatch; single-use plans; fair bounded SlotPool; XFF only via PROOFBOX_TRUST_PROXY; public mode refuses to start without token+key
+    - [x] `T57` Sửa lỗi mức thấp @claude (2026-11-07) — L1 IP classifier, L2 exact BigInt evaluator (no Function), L3 [mock] stderr label, L4 verify-receipt exit 0/1/2/3 no default base, L5 key validated at start; L6 documented; DNS rebinding deferred (needs real proxy)
+    - [x] `T58` Test đối kháng mới @claude (2026-11-07) — npm test 117/117; adversarial probe 30/30 (no token) 32/32 (token); config probe 17/17; policy probe 82/82; pre-fix: 22/30, 32/43, 10/17 fail
+    - [x] `T59` Cập nhật docs bảo mật @claude (2026-11-07) — 6 workdocs pages + diagrams page + README updated; architecture and confirm-gate diagrams regenerated (archify pass); video flagged as pre-fix UI; report docs/reviews/2026-11-07-security-fixes-report.md

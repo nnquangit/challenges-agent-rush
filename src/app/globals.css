@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --color-ink: #0b0d10;
+  --color-panel: #12151a;
+  --color-line: #232831;
+  --color-contained: #34d399;
+}
+
+html {
+  color-scheme: dark;
+}
+body {
+  background:
+    radial-gradient(1200px 500px at 10% -10%, rgb(52 211 153 / 0.07), transparent 60%),
+    radial-gradient(900px 400px at 100% 0%, rgb(99 102 241 / 0.08), transparent 60%),
+    var(--color-ink);
+}
+
+.grid-paper {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.65);
+  backdrop-filter: blur(3px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-dot {
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "fail",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-11-07T15:07:37.768Z",
+  "specification": {
+    "path": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/candidate.json",
+    "sha256": "18ab0b660687107a1056da60d227af348711fcaf67c6dd7f68018a7ed736bfd6",
+    "bytes": 11374
+  },
+  "artifact": {
+    "path": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/architecture-current.html",
+    "sha256": "02104a21a94ff17b4015a7084e4ee8186cd1c4e2893d0d2d372a6d55fbfe68de",
+    "bytes": 800862
+  },
+  "stages": {
+    "validate": {
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": null,
+      "command": [
+        "/Users/nnquangit/.nvm/versions/node/v24.18.0/bin/node",
+        "/Users/nnquangit/.claude/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/candidate.json",
+        "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/architecture-current.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "deliver",
+        "receiptId": "f775611a-6f4d-41d8-b566-ae5863368c42",
+        "stage": "render",
+        "type": "architecture",
+        "input": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/candidate.json",
+        "output": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/architecture-current.html",
+        "error": "Architecture layout validation failed:\n- [composition/label-route-clearance] showcase architecture label \"message\" on connections[2] id \"ui-chat\" \"ui\" -> \"r-chat\" label \"message\" is 0px from connections[1] id \"ui-session\" \"ui\" -> \"r-session\" label \"start session\" segment 1 [186, 344.5] -> [186, 173] (label rect [153, 309, 44, 14]; minimum 4px) — adjust labelAt, labelDx, labelDy, or labelSegment; otherwise adjust the other relationship route/via/channel.",
+        "diagnostics": [
+          {
+            "code": "composition/label-route-clearance",
+            "severity": "error",
+            "message": "[composition/label-route-clearance] showcase architecture label \"message\" on connections[2] id \"ui-chat\" \"ui\" -> \"r-chat\" label \"message\" is 0px from connections[1] id \"ui-session\" \"ui\" -> \"r-session\" label \"start session\" segment 1 [186, 344.5] -> [186, 173] (label rect [153, 309, 44, 14]; minimum 4px) — adjust labelAt, labelDx, labelDy, or labelSegment; otherwise adjust the other relationship route/via/channel.",
+            "subject": {
+              "diagramType": "architecture",
+              "collection": "connections",
+              "index": 2,
+              "id": "ui-chat",
+              "from": "ui",
+              "to": "r-chat"
+            },
+            "evidence": {
+              "label": "message",
+              "otherRelationship": {
+                "diagramType": "architecture",
+                "collection": "connections",
+                "index": 1,
+                "id": "ui-session",
+                "from": "ui",
+                "to": "r-session"
+              },
+              "segmentIndex": 1,
+              "clearancePx": 0,
+              "minimumPx": 4,
+              "labelRect": {
+                "relation": {
+                  "id": "ui-chat",
+                  "from": "ui",
+                  "to": "r-chat",
+                  "label": "message",
+                  "variant": "emphasis"
+                },
+                "relationIndex": 2,
+                "label": "message",
+                "x": 153.2,
+                "y": 309.45,
+                "width": 43.6,
+                "height": 14,
+                "lx": 175,
+                "ly": 319.45
+              },
+              "from": [
+                186,
+                344.5
+              ],
+              "to": [
+                186,
+                173
+              ]
+            },
+            "supportedFixes": [
+              "adjust labelAt, labelDx, labelDy, or labelSegment; otherwise adjust the other relationship route/via/channel"
+            ]
+          }
+        ],
+        "provenance": "failed",
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      },
+      "execution": "embedded-in-deliver"
+    },
+    "deliver": {
+      "status": "not-run",
+      "execution": "blocked-by-validate"
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "composition/label-route-clearance",
+      "severity": "error",
+      "message": "[composition/label-route-clearance] showcase architecture label \"message\" on connections[2] id \"ui-chat\" \"ui\" -> \"r-chat\" label \"message\" is 0px from connections[1] id \"ui-session\" \"ui\" -> \"r-session\" label \"start session\" segment 1 [186, 344.5] -> [186, 173] (label rect [153, 309, 44, 14]; minimum 4px) — adjust labelAt, labelDx, labelDy, or labelSegment; otherwise adjust the other relationship route/via/channel.",
+      "subject": {
+        "diagramType": "architecture",
+        "collection": "connections",
+        "index": 2,
+        "id": "ui-chat",
+        "from": "ui",
+        "to": "r-chat"
+      },
+      "evidence": {
+        "label": "message",
+        "otherRelationship": {
+          "diagramType": "architecture",
+          "collection": "connections",
+          "index": 1,
+          "id": "ui-session",
+          "from": "ui",
+          "to": "r-session"
+        },
+        "segmentIndex": 1,
+        "clearancePx": 0,
+        "minimumPx": 4,
+        "labelRect": {
+          "relation": {
+            "id": "ui-chat",
+            "from": "ui",
+            "to": "r-chat",
+            "label": "message",
+            "variant": "emphasis"
+          },
+          "relationIndex": 2,
+          "label": "message",
+          "x": 153.2,
+          "y": 309.45,
+          "width": 43.6,
+          "height": 14,
+          "lx": 175,
+          "ly": 319.45
+        },
+        "from": [
+          186,
+          344.5
+        ],
+        "to": [
+          186,
+          173
+        ]
+      },
+      "supportedFixes": [
+        "adjust labelAt, labelDx, labelDy, or labelSegment; otherwise adjust the other relationship route/via/channel"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/review-3/architecture-current.finalize.json",
+    "summaryReceipt": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/review-3/architecture-current.finalize-summary.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "validate",
+  "finishedAt": "2026-11-07T15:07:37.962Z",
+  "durationMs": 193,
+  "update": {
+    "status": "update_available",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.2.0",
+    "releaseNotes": "https://github.com/tt-a1i/archify/releases/tag/v3.2.0",
+    "severity": "normal",
+    "checkedAt": "2026-11-07T04:29:15.087Z",
+    "source": "cache",
+    "noticeRequired": true,
+    "noticeText": "Archify update: 3.0.1 → 3.2.0. A previous check at 2026-11-07T04:29:15.087Z found a newer release. Release notes: https://github.com/tt-a1i/archify/releases/tag/v3.2.0. The installed Skill has not changed; ask to snooze or ignore this reminder.",
+    "eventKey": "archify@sha256:70e210265c59f24dcbdf2a502ff671104b5454e7ee7d3554aecd86bad32384f5"
+  }
+}

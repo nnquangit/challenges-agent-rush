@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>How it works · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html">Overview</a>
+    <a class="wd-link" href="setup.html">Setup</a>
+    <a class="wd-link" href="how-it-works.html" aria-current="page">How it works</a>
+    <a class="wd-link" href="security.html">Security</a>
+    <a class="wd-link" href="api.html">API</a>
+    <a class="wd-link" href="demo.html">Demo script</a>
+    <a class="wd-link" href="diagrams.html">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>How it works</h1>
+    <p class="wd-lead">One request from plan to signed receipt, with the code that does each step.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> No container or VM runs, and the app makes no calls to Vultr or any other external service. Results such as "blocked", "OOM-killed" and "destroyed" come from software rules in <code>MockSandbox</code>; they are not evidence of real isolation.</p>
+
+  <!-- workdocs:begin id=flow -->
+  <section id="flow" class="wd-flow playing">
+    <h2>Big picture</h2>
+    <p>A request goes through three stages. <strong>Plan</strong>: the LLM proposes steps and the server validates and rewrites them. <strong>Dispatch</strong>: each step, and each retry, gets a fresh sandbox that is always destroyed. <strong>Receipt</strong>: scrubbed output plus an isolation report, sealed with sha256 and Ed25519. Browser actions with side effects wait for a human. In this build the LLM and the sandbox are mocks (dashed).</p>
+    <svg class="wd-diagram" viewBox="0 0 960 270" role="img" aria-label="Flow: the browser UI calls the API routes; the chat route asks MockLlm for a plan and runs it through the policy, then stores it; the runs route starts the orchestrator, which calls runInSandbox for each step; runInSandbox drives MockSandbox and sends the result to signing, which seals the receipt.">
+      <style>@media (prefers-reduced-motion: reduce) { .packet { display: none; } }</style>
+      <path id="w1" class="wire" fill="none" stroke="#8a929c" stroke-width="2" d="M160 135 H210"/>
+      <path id="w2" class="wire" fill="none" stroke="#8a929c" stroke-width="2" d="M280 108 V76"/>
+      <path id="w3" class="wire" fill="none" stroke="#8a929c" stroke-width="2" d="M350 135 H400"/>
+      <path id="w4" class="wire" fill="none" stroke="#8a929c" stroke-width="2" d="M470 108 V76"/>
+      <path id="w5" class="wire" fill="none" stroke="#8a929c" stroke-width="2" d="M540 135 H590"/>
+      <path id="w6" class="wire" fill="none" stroke="#8a929c" stroke-width="2" d="M730 135 H780"/>
+      <path id="w7" class="wire" fill="none" stroke="#8a929c" stroke-width="2" d="M660 162 V196"/>
+      <path id="w8" class="wire" fill="none" stroke="#8a929c" stroke-width="2" d="M280 162 V196"/>
+      <g fill="#ffffff" stroke="#9aa3a0">
+        <rect class="box" x="20" y="108" width="140" height="54" rx="12"/>
+        <rect class="box" x="210" y="108" width="140" height="54" rx="12"/>
+        <rect class="box" x="400" y="108" width="140" height="54" rx="12"/>
+        <rect class="box" x="590" y="108" width="140" height="54" rx="12"/>
+        <rect class="box sim" x="780" y="108" width="160" height="54" rx="12"/>
+        <rect class="box" x="210" y="22" width="140" height="54" rx="12"/>
+        <rect class="box sim" x="400" y="22" width="140" height="54" rx="12"/>
+        <rect class="box" x="210" y="196" width="140" height="54" rx="12"/>
+        <rect class="box" x="590" y="196" width="140" height="54" rx="12"/>
+      </g>
+      <g fill="#1c2426" font-size="13" text-anchor="middle">
+        <text x="90" y="131">Browser UI</text><text class="muted" x="90" y="149">ProofBoxApp.tsx</text>
+        <text x="280" y="131">API routes</text><text class="muted" x="280" y="149">chat · runs</text>
+        <text x="470" y="131">Orchestrator</text><text class="muted" x="470" y="149">advance()</text>
+        <text x="660" y="131">runInSandbox</text><text class="muted" x="660" y="149">sandbox/index.ts</text>
+        <text x="860" y="131">MockSandbox</text><text class="muted" x="860" y="149">simulated</text>
+        <text x="280" y="45">Policy</text><text class="muted" x="280" y="63">enforcePolicy()</text>
+        <text x="470" y="45">MockLlm</text><text class="muted" x="470" y="63">plan · repair · explain</text>
+        <text x="280" y="219">Store</text><text class="muted" x="280" y="237">savePlan / saveRun</text>
+        <text x="660" y="219">Signing</text><text class="muted" x="660" y="237">sealReceipt()</text>
+      </g>
+      <g aria-hidden="true" fill="#0f6e63">
+        <circle class="packet" r="5"><animateMotion dur="1.4s" repeatCount="indefinite"><mpath href="#w1"/></animateMotion></circle>
+        <circle class="packet" r="5"><animateMotion dur="1.4s" begin="-.3s" repeatCount="indefinite"><mpath href="#w2"/></animateMotion></circle>
+        <circle class="packet" r="5"><animateMotion dur="1.4s" begin="-.6s" repeatCount="indefinite"><mpath href="#w8"/></animateMotion></circle>
+        <circle class="packet" r="5"><animateMotion dur="1.4s" begin="-.9s" repeatCount="indefinite"><mpath href="#w3"/></animateMotion></circle>
+        <circle class="packet" r="5"><animateMotion dur="1.4s" begin="-1.1s" repeatCount="indefinite"><mpath href="#w4"/></animateMotion></circle>
+        <circle class="packet" r="5"><animateMotion dur="1.4s" begin="-1.3s" repeatCount="indefinite"><mpath href="#w5"/></animateMotion></circle>
+        <circle class="packet" r="5"><animateMotion dur="1.4s" begin="-1.6s" repeatCount="indefinite"><mpath href="#w6"/></animateMotion></circle>
+        <circle class="packet" r="5"><animateMotion dur="1.4s" begin="-1.9s" repeatCount="indefinite"><mpath href="#w7"/></animateMotion></circle>
+      </g>
+    </svg>
+    <p>Interactive versions: <a href="diagrams/sequence-plan-run.html">sequence of a run</a>, <a href="diagrams/sequence-confirm-gate.html">human confirm gate</a> and <a href="diagrams/lifecycle-run-step.html">step status lifecycle</a> (all on <a href="diagrams.html">Diagrams</a>).</p>
+    <p class="wd-source">Source: <code>src/components/ProofBoxApp.tsx</code>, <code>src/app/api/chat/route.ts</code>, <code>src/app/api/runs/route.ts</code>, <code>src/lib/orchestrator.ts</code>, <code>src/lib/sandbox/index.ts</code>, <code>src/lib/sandbox/signing.ts</code></p>
+  </section>
+  <!-- workdocs:end id=flow -->
+
+  <!-- workdocs:begin id=steps -->
+  <section id="steps">
+    <h2>Step by step</h2>
+    <p>One run of the <strong>Prove-It Python</strong> preset, in the order the code runs it. The diagram above the list walks through the steps on its own.</p>
+    <ol class="wd-steps" data-player data-lanes="ui=Browser UI|ProofBoxApp.tsx;api=API routes|src/app/api;llm=MockLlm|mock-llm.ts;pol=Policy|policy.ts;orch=Orchestrator|orchestrator.ts;sbx=runInSandbox|sandbox/index.ts">
+      <li data-from="ui" data-to="api" data-label="POST /api/session"><b>Start a session</b> — on load the UI reads <code>/api/status</code> and posts <code>/api/session</code> (<code>src/components/ProofBoxApp.tsx:openSession</code>). <code>src/app/api/session/route.ts:POST</code> mints a random principal and sets the HttpOnly cookie <code>pb_session</code> signed by <code>src/lib/access.ts:signSession</code>. With a token configured, the UI asks for it first.</li>
+      <li data-from="ui" data-to="api" data-label="POST /api/chat"><b>Ask for a plan</b> — clicking a preset posts its message (<code>src/components/ProofBoxApp.tsx:send</code>). <code>src/app/api/chat/route.ts:POST</code> calls <code>requireSession</code> (401 without a valid cookie), applies the per-principal limit, and requires <code>message</code> (400 if missing, 413 over 20000 characters).</li>
+      <li data-from="api" data-to="llm" data-label="plan()"><b>Plan</b> — <code>src/lib/llm/index.ts:getLlm</code> returns <code>MockLlm</code>; <code>src/lib/llm/mock-llm.ts:MockLlm.plan</code> classifies the intent (code, csv, browser) and returns template plan JSON. Simulated.</li>
+      <li data-from="llm" data-to="api" data-kind="ret" data-label="Plan JSON"><b>Plan JSON</b> — one step, "Run code in sandbox", with the user's Python.</li>
+      <li data-from="api" data-to="pol" data-label="enforcePolicy()"><b>Policy</b> — <code>src/lib/policy.ts:enforcePolicy</code> runs <code>validatePlan</code> (at most 8 planner steps, kinds code/browser, http(s) URLs, code up to 20000 characters), clears probe flags set by the LLM, forces <code>requiresConfirm</code> on <code>submit</code>, sets egress to <code>userHosts(message)</code> ∩ <code>SANDBOX_EGRESS_ALLOWLIST</code>, and appends the standard probes (<code>addedBy: "policy"</code>) before the first gated step. Here: Containment probe and Resource cap probe, 3 steps in total.</li>
+      <li data-from="api" data-to="ui" data-kind="ret" data-label="200 { reply, plan }"><b>Plan shown</b> — <code>src/lib/store.ts:savePlan</code> keeps the plan in memory with <code>owner</code> = the caller's principal; the route answers <code>{ reply, plan }</code>.</li>
+      <li data-from="ui" data-to="api" data-label="POST /api/runs"><b>Dispatch</b> — <strong>Dispatch to sandbox →</strong> posts <code>{ planId }</code>. <code>src/app/api/runs/route.ts:POST</code> accepts only the caller's own stored plan (<code>ownPlan</code>; 404 otherwise) and answers 202.</li>
+      <li data-from="api" data-to="orch" data-label="startRun()"><b>Start the run</b> — <code>src/lib/orchestrator.ts:startRun</code> refuses a used plan (409, plans are single-use) or a caller with 2 active runs (429), creates the run with the same <code>owner</code> and calls <code>advance</code>, which locks it (<code>store.locks</code>) and walks the steps. A step needing confirmation stops at <code>awaiting_confirm</code> before any sandbox is created; the orchestrator re-checks <code>submit</code> itself, independent of the planner.</li>
+      <li data-from="orch" data-to="sbx" data-label="runInSandbox()"><b>Run one step</b> — <code>orchestrator.ts:executeStep</code> → <code>src/lib/sandbox/index.ts:runInSandbox</code>: a slot from the fair <code>SlotPool</code> (<code>src/lib/sandbox/slots.ts</code>: global cap, per-principal share, round-robin, bounded wait), <code>buildSandboxEnv</code>, clamp egress to the server allowlist again, then create → exec → artifacts → <code>redactText</code> → <code>destroy()</code> in <code>finally</code>.</li>
+      <li data-from="sbx" data-to="sbx" data-label="seal()"><b>Seal</b> — the isolation report is read after <code>destroy()</code>, then <code>src/lib/sandbox/signing.ts:sealReceipt</code> hashes and signs the canonical JSON of the whole receipt (<code>src/lib/receipt-canonical.ts</code>).</li>
+      <li data-from="sbx" data-to="orch" data-kind="ret" data-label="receipt"><b>Receipt back</b> — exit 0: the step succeeds. A probe succeeds only if something was blocked or a cap killed it.</li>
+      <li data-from="orch" data-to="llm" data-label="explain()"><b>Explain</b> — code failure (not a probe): <code>llm.repair()</code> and at most one retry (<code>MAX_ATTEMPTS = 2</code>); browser step: <code>llm.verify()</code>; every step: <code>llm.explain()</code>. All template answers in mock mode.</li>
+      <li data-from="ui" data-to="api" data-label="GET /api/runs/:id"><b>Poll</b> — while the run is live the UI polls <code>src/app/api/runs/[id]/route.ts:GET</code> every 450 ms; only the owner's session gets the run (<code>ownRun</code>), anyone else 404.</li>
+      <li data-from="api" data-to="ui" data-kind="ret" data-label="run + receipts"><b>Done</b> — the chat shows "Run succeeded: 3/3 steps succeeded"; each receipt carries the badge <code>CONTAINED (SIMULATED)</code>.</li>
+    </ol>
+    <p>For a browser plan with a submit step, <code>src/app/api/runs/[id]/confirm/route.ts</code> → <code>orchestrator.ts:confirmStep</code> resumes the run — only for the run's owner (404 for anyone else) and only once (409 for a replay or a duplicate): approve runs the step, deny marks it <code>skipped</code> with no sandbox attempt. An unanswered gate is denied after <code>CONFIRM_TTL_MS</code> (10 min). <strong>Run again</strong> in the UI asks the planner again, because a plan can be dispatched only once.</p>
+    <p class="wd-source">Source: <code>src/app/api/*</code>, <code>src/lib/llm/*</code>, <code>src/lib/policy.ts</code>, <code>src/lib/orchestrator.ts</code>, <code>src/lib/sandbox/index.ts</code>, <code>src/lib/sandbox/signing.ts</code>, <code>src/lib/sandbox/slots.ts</code>, <code>src/lib/access.ts</code>, <code>src/components/ProofBoxApp.tsx</code></p>
+  </section>
+  <!-- workdocs:end id=steps -->
+
+  <!-- workdocs:begin id=components -->
+  <section id="components">
+    <h2>Key components</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Component</th><th>Responsibility</th><th>File</th></tr></thead>
+      <tbody>
+        <tr><td>ProofBoxApp</td><td>Presets, chat, plan board, timeline, confirm dialog, in-browser receipt verification</td><td><code>src/components/ProofBoxApp.tsx</code>, <code>ReceiptViewer.tsx</code>, <code>ConfirmDialog.tsx</code></td></tr>
+        <tr><td>Access</td><td>Session principal (HMAC cookie), token gate on session start, loopback-only <code>Host</code> in local mode, <code>Origin</code> check, config refusal</td><td><code>src/lib/access.ts</code>, <code>src/app/api/session/route.ts</code>, <code>src/lib/config.ts:configProblems</code>, <code>src/instrumentation.ts</code></td></tr>
+        <tr><td>API routes</td><td>Input checks, ownership lookups and status codes</td><td><code>src/app/api/*/route.ts</code>, <code>src/lib/http.ts</code></td></tr>
+        <tr><td>Policy</td><td>Validate the plan, insert probes, force confirm, compute egress</td><td><code>src/lib/policy.ts</code></td></tr>
+        <tr><td>Orchestrator</td><td>Step walk, retry, human gate, timeline</td><td><code>src/lib/orchestrator.ts</code></td></tr>
+        <tr><td>runInSandbox</td><td>Fixed sandbox lifecycle, secret scrubbing</td><td><code>src/lib/sandbox/index.ts</code>, <code>redact.ts</code></td></tr>
+        <tr><td>SlotPool</td><td>Global sandbox cap shared fairly: per-principal share, bounded queues, round-robin, bounded waits, idempotent release</td><td><code>src/lib/sandbox/slots.ts</code></td></tr>
+        <tr><td>Signing</td><td>sha256 + Ed25519, public key endpoint</td><td><code>src/lib/sandbox/signing.ts</code>, <code>src/lib/receipt-canonical.ts</code></td></tr>
+        <tr><td>Containment verdict</td><td><code>CONTAINED</code> / <code>UNVERIFIED</code> / <code>NOT CONTAINED</code> from receipt evidence</td><td><code>src/lib/containment.ts</code></td></tr>
+        <tr><td>Store</td><td>Plans and runs with their owner, locks; in memory, at most 200 entries each (live runs are never evicted)</td><td><code>src/lib/store.ts</code></td></tr>
+        <tr><td>Rate limit</td><td>Fixed 60 s window per key (principal; client IP only with <code>PROOFBOX_TRUST_PROXY</code>) for session, chat, runs and exec</td><td><code>src/lib/rate-limit.ts</code></td></tr>
+        <tr><td>MockSandbox, MockLlm</td><td>Simulated sandbox and planner (see "Real vs simulated")</td><td><code>src/lib/sandbox/mock-sandbox.ts</code>, <code>src/lib/sandbox/fixtures.ts</code>, <code>src/lib/llm/mock-llm.ts</code></td></tr>
+      </tbody>
+    </table></div>
+    <h3>What a receipt contains</h3>
+    <div class="wd-table"><table>
+      <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>sandboxId</code>, <code>provider</code>, <code>stepId</code>, <code>attempt</code></td><td>Which sandbox, which provider (<code>mock</code>), which step and attempt</td></tr>
+        <tr><td><code>command</code>, <code>input</code></td><td>The command and the exact code or browser action</td></tr>
+        <tr><td><code>stdout</code>, <code>stderr</code>, <code>exitCode</code>, <code>killedBy</code></td><td>Scrubbed output; 124 = time cap, 137 = memory cap (simulated). Mock stderr starts with <code>[mock] simulated stderr — …</code></td></tr>
+        <tr><td><code>artifacts</code></td><td>Tables, charts, JSON, network log, screenshots (SVG fixtures in mock)</td></tr>
+        <tr><td><code>limits</code>, <code>peakMemoryMb</code>, <code>durationMs</code>, <code>startedAt</code>, <code>endedAt</code></td><td>Limits applied and usage estimated by the mock</td></tr>
+        <tr><td><code>envInjected</code>, <code>redactions</code></td><td>The env the sandbox saw; scoped secrets appear only as <code>[REDACTED]</code></td></tr>
+        <tr><td><code>isolation</code>, <code>clock</code></td><td><code>hostTouched</code>, network policy, blocked attempts, <code>destroyed</code>, <code>simulated: true</code>, <code>clock: "simulated"</code>; in mock these values are written by <code>MockSandbox</code> itself</td></tr>
+        <tr><td><code>sealedAt</code>, <code>sha256</code>, <code>signature</code></td><td>Over the canonical JSON of the whole receipt, sealed after <code>destroy()</code></td></tr>
+      </tbody>
+    </table></div>
+    <p class="wd-source">Source: <code>src/lib/types.ts</code>, <code>src/lib/sandbox/index.ts:93-125</code>; field list matches a receipt returned by <code>/api/sandbox/exec</code> on 2026-11-07</p>
+  </section>
+  <!-- workdocs:end id=components -->
+
+  <!-- workdocs:begin id=errors -->
+  <section id="errors">
+    <h2>Failure paths</h2>
+    <ul>
+      <li><strong>No session, wrong host or origin</strong>: 401 <code>session_required</code>; 403 for a non-loopback <code>Host</code> in local mode or a cross-origin POST; 503 when the security config is invalid (<code>src/lib/access.ts:precheck</code>).</li>
+      <li><strong>Bad input</strong>: missing <code>message</code> or invalid JSON → 400; over 20000 characters → 413 (<code>src/app/api/chat/route.ts</code>).</li>
+      <li><strong>Invalid plan from the planner</strong>: <code>validatePlan</code> throws <code>PlanRejected</code> → 502; nothing runs.</li>
+      <li><strong>Unknown or foreign <code>planId</code></strong> → 404; a plan dispatched before → 409; too many active runs → 429. An unknown or foreign run → 404; confirming a step that is not waiting → 409.</li>
+      <li><strong>Code failure</strong> (exit ≠ 0, not a probe): one repair attempt. An <code>AssertionError</code> is not repaired: a disproven claim is recorded as failed (<code>src/lib/llm/mock-llm.ts:repair</code>).</li>
+      <li><strong>Time or memory cap</strong>: the mock returns <code>killedBy: "timeout"</code> (exit 124) or <code>"memory"</code> (exit 137) on a simulated clock.</li>
+      <li><strong>Probe not blocked</strong>: the probe step fails and the timeline says "Probe was not blocked!".</li>
+      <li><strong>All sandbox slots busy</strong>: runs and ad-hoc execs wait in a bounded per-principal queue and are served round-robin; a full queue or a wait longer than <code>SANDBOX_EXEC_WAIT_MS</code> (exec) → 429, longer than <code>SANDBOX_RUN_WAIT_MS</code> (run step) → the run aborts (<code>src/lib/sandbox/slots.ts:acquire</code>).</li>
+      <li><strong>Nobody answers the gate</strong>: after <code>CONFIRM_TTL_MS</code> the step is denied (<code>confirm.expired</code>) and the run finishes without the submit.</li>
+      <li><strong>Provider error</strong> (for example <code>MOCK=0</code> with the stubs): the slot is released, the running step and the run become <code>failed</code>, and the timeline says "Run aborted: …".</li>
+    </ul>
+    <p class="wd-source">Source: <code>src/app/api/*</code>, <code>src/lib/policy.ts</code>, <code>src/lib/orchestrator.ts:78-91,120-126</code>, <code>src/lib/sandbox/slots.ts</code>, <code>src/lib/access.ts</code>, <code>src/lib/sandbox/mock-sandbox.ts:222-240</code></p>
+  </section>
+  <!-- workdocs:end id=errors -->
+
+  <!-- workdocs:begin id=real-vs-mock -->
+  <section id="real-vs-mock">
+    <h2>Real vs simulated</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Interface</th><th>Runs by default</th><th>Real implementation</th></tr></thead>
+      <tbody>
+        <tr><td><code>SandboxProvider</code></td><td><span class="wd-tag mock">mock</span> <code>MockSandbox</code>: does not execute user code; matches patterns, returns fixtures, uses a simulated clock, writes its own isolation report. Its print emulator evaluates only exact Python integer arithmetic (<code>src/lib/sandbox/py-arith.ts</code>, no host <code>eval</code>); anything else prints <code>&lt;mock: not evaluated: …&gt;</code>, and its stderr is labelled <code>[mock] simulated</code>.</td><td><span class="wd-tag none">stub</span> <code>VultrSandbox</code> throws; planned Docker + gVisor on a Vultr VM</td></tr>
+        <tr><td><code>LlmProvider</code></td><td><span class="wd-tag mock">mock</span> <code>MockLlm</code>: template plans; only the presets give meaningful plans</td><td><span class="wd-tag none">stub</span> <code>VultrInferenceLlm</code> throws, no network code; planned Vultr Serverless Inference (OpenAI-compatible)</td></tr>
+        <tr><td>Browser</td><td><span class="wd-tag mock">mock</span> canned fixture pages, SVG "screenshots"</td><td>planned: Playwright inside the container</td></tr>
+        <tr><td>Hosting, storage</td><td>local <code>npm run dev</code> or <code>npm start</code>; in-memory store</td><td>planned: Vultr VM</td></tr>
+      </tbody>
+    </table></div>
+    <p>Selection: <code>src/lib/sandbox/index.ts:getSandboxProvider</code> and <code>src/lib/llm/index.ts:getLlm</code>, by <code>MOCK</code> (<code>src/lib/config.ts:isMock</code>). What stays the same with a real sandbox: policy, human gate, egress allowlist, rate limit and slot cap, redaction, receipt sealing.</p>
+    <p class="wd-source">Source: <code>src/lib/sandbox/mock-sandbox.ts</code>, <code>src/lib/sandbox/vultr-sandbox.ts</code>, <code>src/lib/llm/mock-llm.ts</code>, <code>src/lib/llm/vultr-inference-llm.ts</code></p>
+  </section>
+  <!-- workdocs:end id=real-vs-mock -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07, updated the same day after the security fixes (the project has no git history); sources: src/app/api/*, src/components/ProofBoxApp.tsx, src/lib/orchestrator.ts, src/lib/policy.ts, src/lib/sandbox/*, src/lib/llm/*, src/lib/store.ts, src/lib/types.ts. Static page: re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

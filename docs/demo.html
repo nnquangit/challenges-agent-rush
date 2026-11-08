@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Demo script · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html">Overview</a>
+    <a class="wd-link" href="setup.html">Setup</a>
+    <a class="wd-link" href="how-it-works.html">How it works</a>
+    <a class="wd-link" href="security.html">Security</a>
+    <a class="wd-link" href="api.html">API</a>
+    <a class="wd-link" href="demo.html" aria-current="page">Demo script</a>
+    <a class="wd-link" href="diagrams.html">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>Demo script</h1>
+    <p class="wd-lead">A complete 3-minute demo of the mock build: setup, actions, narration, expected results, fallbacks and cleanup.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> No container or VM runs, and the app makes no calls to Vultr or any other external service. Results such as "blocked", "OOM-killed" and "destroyed" come from software rules in <code>MockSandbox</code>; they are not evidence of real isolation. Say this aloud during the demo.</p>
+
+  <!-- workdocs:begin id=goal -->
+  <section id="goal">
+    <h2>Goal and audience</h2>
+    <p>Show hackathon judges, in 3 minutes or less, that ProofBox keeps agent actions inside per-step sandboxes, puts a human in front of side effects, and hands back receipts anyone can verify. Challenge 1 asks for a visible containment moment (step 3).</p>
+    <p><strong>Mode: mock.</strong> Every receipt shows <code>CONTAINED (SIMULATED)</code>. Never present the mock as real isolation. When a Vultr sandbox exists, re-record steps 3 and 4 with a host terminal beside the browser.</p>
+    <p class="wd-source">Source: <code>PLAN.md</code>, <code>src/components/IsolationBadge.tsx</code></p>
+  </section>
+  <!-- workdocs:end id=goal -->
+
+  <!-- workdocs:begin id=video -->
+  <section id="video">
+    <h2>Recorded demo video</h2>
+    <figure class="wd-video">
+      <video controls preload="metadata" poster="media/proofbox-demo-poster.jpg" src="media/proofbox-demo.mp4" width="1920" height="1080"><track kind="captions" srclang="en" label="English" src="media/proofbox-demo.vtt">Your browser cannot play this video. The steps below cover the same flow.</video>
+      <figcaption>ProofBox demo, 2:37, 1080p, English voiceover and captions (<code>docs/media/proofbox-demo.mp4</code>; captions <code>proofbox-demo.vtt</code> for the page and <code>proofbox-demo.srt</code> for upload sites). It shows the app in <strong>mock mode</strong>: the four live parts are a screen recording of the presets Prove-It Python, the containment probes, CSV Analyst and Research with Receipts, and every receipt in them is <code>CONTAINED (SIMULATED)</code>. The Vultr part is described as planned, not deployed.</figcaption>
+    </figure>
+    <p>How it was made, all from this repository and free of third-party rights: slides and editing in Remotion (<code>video/src/</code>); screen recording of the local mock app with Playwright (<code>video/scripts/record-app.mjs</code>); voice from the open model Kokoro-82M (Apache-2.0, voice <code>af_heart</code>, generated locally by <code>video/scripts/tts.py</code>); background music synthesized with ffmpeg; fonts Inter and JetBrains Mono (SIL Open Font License). No Vultr or lablab logos are used. Rebuild with <code>npm run render</code> in <code>video/</code> (see <code>video/README.md</code>).</p>
+    <p class="wd-note"><strong>The video shows the UI and behaviour from before the 2026-11-07 security fixes.</strong> Visible differences in the current build: a <code>session: pr_…</code> chip in the header (wide screens); the stdout/stderr boxes are titled "simulated by mock" and mock stderr starts with <code>[mock] simulated stderr — …</code>; <strong>Run again</strong> re-plans and the chat says "Re-planned (plans are single-use) and dispatched …"; free-form <code>print()</code> evaluates only exact integer arithmetic; with a token configured, the page first asks for it. The containment moment and the step results (3/3, 2/2, 4/5, 5/5) are unchanged. The video was not re-rendered; it must be re-recorded anyway once a real sandbox runs.</p>
+    <p class="wd-source">Source: <code>video/narration.json</code>, <code>video/src/Demo.tsx</code>, <code>video/scripts/*</code>; recorded 2026-11-07 from the mock build, before the security fixes.</p>
+  </section>
+  <!-- workdocs:end id=video -->
+
+  <!-- workdocs:begin id=prereq -->
+  <section id="prereq">
+    <h2>Prerequisites</h2>
+    <ul>
+      <li>A laptop with Node.js and npm (<a href="setup.html#prereq">Setup → Prerequisites</a>), the project installed (<code>npm install</code>), two terminals, and a Chromium-based browser (in-browser Ed25519 verification needs WebCrypto Ed25519; otherwise use the CLI).</li>
+      <li>No accounts. No <code>.env</code> with real keys on the machine or on screen. Close private tabs, mail and chat.</li>
+      <li>Browser window about 1280×800 (the run below was checked at 1440×900). The app has a dark theme only.</li>
+      <li>An empty downloads folder: step 2 downloads <code>receipt-&lt;sandboxId&gt;.json</code>.</li>
+      <li>Optional: a screen recorder at 1080p with captions, or play the recorded video above.</li>
+    </ul>
+    <p class="wd-source">Source: <code>src/components/ReceiptViewer.tsx:17-37</code>, <code>src/app/globals.css</code></p>
+  </section>
+  <!-- workdocs:end id=prereq -->
+
+  <!-- workdocs:begin id=setup -->
+  <section id="setup">
+    <h2>Setup commands</h2>
+<pre><code>npm run build
+npm start                          # or: npx next start -p 3117 -H 127.0.0.1 if port 3000 is taken
+# note the PID of the server process, so you can stop exactly that process afterwards
+curl -s &lt;app URL&gt;/api/status       # expect "mode":"mock" and "sandboxes":{"active":0,"queued":0,"max":3}</code></pre>
+    <p><strong>Ready when:</strong> the server is fresh (empty run list), the header shows <code>MOCK MODE · no Vultr calls</code>, and the second terminal is open in the project folder for <code>npm run verify-receipt</code>.</p>
+    <p class="wd-source">Source: <code>package.json</code> scripts, <code>src/app/api/status/route.ts</code>, <code>src/components/ProofBoxApp.tsx:155</code></p>
+  </section>
+  <!-- workdocs:end id=setup -->
+
+  <!-- workdocs:begin id=script -->
+  <section id="script">
+    <h2>Script</h2>
+    <p>Seven steps. Each item gives the action (exact UI label or command), what to say, and what the audience should see. The diagram above the list walks through the steps on its own. Steps 2, 4 and 5 were run in Chromium against the current code on 2026-11-07 with the results shown.</p>
+    <ol class="wd-steps" data-player data-lanes="presenter=Presenter;screen=Browser|ProofBox UI;term=Terminal|verify-receipt;docs=Docs|these pages">
+      <li data-from="presenter" data-to="screen" data-label="home page"><b>Open (0:00–0:20)</b> — Action: show the title card, then the ProofBox home page. Say: "Agents that run code or drive a browser on your machine can leak secrets or touch production. ProofBox runs every step in its own throw-away sandbox and gives you a receipt you can check." Expected: presets in the Task panel; <code>MOCK MODE · no Vultr calls</code> in the header.</li>
+      <li data-from="presenter" data-to="screen" data-label="Prove-It Python"><b>Prove a claim (0:20–0:45)</b> — Action: click the preset <strong>Prove-It Python</strong> (it plans at once), then <strong>Dispatch to sandbox →</strong>. Open step 1 and click <strong>verify</strong>, then <strong>download receipt.json</strong>. Say: "The claim, sum of primes below 100 is 1060, is checked in a sandbox step. In this mock build the sandbox is simulated: the code is matched against fixtures, not executed. The receipt is hashed and Ed25519-signed over everything, including the isolation report." Expected: chat "Run succeeded: 3/3 steps succeeded"; "✓ sha256 recomputed in your browser · ✓ Ed25519 signature valid" with "(ephemeral demo key)".</li>
+      <li data-from="presenter" data-to="term" data-label="verify-receipt"><b>Verify offline (0:45–0:55)</b> — Action: in the second terminal run <code>npm run verify-receipt -- ~/Downloads/receipt-*.json --base &lt;app URL&gt;</code>. Say: "Anyone can re-check it offline." Expected: two ✓ lines (sha256, Ed25519), exit 0.</li>
+      <li data-from="presenter" data-to="screen" data-label="containment probes"><b>Containment moment (0:55–1:35)</b> — Action: open step 2 "Containment probe" (tag <code>containment probe · policy</code>), then step 3 "Resource cap probe". Point at the badge and the amber line under it. Say: "The server, not the model, adds this probe to every plan. It tries to read the API key, the host disk, cloud metadata and the Docker socket. All blocked. A 2 GB allocation is killed at the 256 MiB cap. In this build the sandbox is simulated; the policy rules and the receipt are real code." Expected: probe output shows <code>[REDACTED]</code> and "host filesystem: not mounted"; step 3 exit 137, killed by memory; badge <code>CONTAINED (SIMULATED)</code> and "Simulated by mock: no container or VM ran…".</li>
+      <li data-from="presenter" data-to="screen" data-label="CSV Analyst"><b>Self-repair (1:35–2:05)</b> — Action: click the preset <strong>CSV Analyst</strong>, then <strong>Dispatch to sandbox →</strong>. Open the analysis step's attempts. Say: "The agent used the wrong column, saw the error, fixed it and retried in a new sandbox. Trying to POST the data out is blocked by the egress policy." Expected: attempt 1 exit 1 <code>KeyError: 'revenue'</code>; attempt 2 exit 0 with <code>revenue_usd</code>, a summary table and a bar chart; exfiltration probe blocked; "Run succeeded: 2/2 steps succeeded".</li>
+      <li data-from="presenter" data-to="screen" data-label="Deny, then Approve submit"><b>Human gate (2:05–2:35)</b> — Action: click the preset <strong>Research with Receipts</strong>, then <strong>Dispatch to sandbox →</strong>. When the dialog appears, click <strong>Deny</strong>. Then click <strong>Run again</strong> (it asks the planner again, because a plan runs only once; the chat says "Re-planned (plans are single-use) and dispatched …") and, in the dialog, <strong>Approve submit</strong>. Say: "Browsing is limited to hosts you typed that are also on the server allowlist. Anything with a side effect waits for a human — and only the session that started the run can answer. Deny means it never runs. An approved submit in mock mode is captured by a fixture; nothing reaches a real site." Expected: evidence screenshot (Pro = $29 / month); metadata probe blocked; dialog "Human confirmation required" with focus on Deny; after Deny "Run succeeded: 4/5 steps succeeded" (submit skipped); after Approve "5/5".</li>
+      <li data-from="presenter" data-to="docs" data-label="How it works · Security"><b>Close (2:35–3:00)</b> — Action: show <a href="how-it-works.html">How it works</a> and the threats table on <a href="security.html#threats">Security</a>, then the end card. Say: "Plan, dispatch, receipt. Planned on Vultr: Serverless Inference for the LLM calls and Docker with gVisor on a Vultr VM for the sandbox. ProofBox: blast radius zero, with receipts." Say "running on Vultr" only once it is. Expected: the static docs pages; the repository and demo URL on the end card only when they exist.</li>
+    </ol>
+    <p class="wd-source">Source: <code>src/lib/presets.ts</code>, <code>src/components/ProofBoxApp.tsx</code>, <code>src/components/ReceiptViewer.tsx</code>, <code>src/components/ConfirmDialog.tsx</code>, <code>src/components/IsolationBadge.tsx</code>, <code>src/lib/policy.ts</code>; browser run of 2026-11-07</p>
+  </section>
+  <!-- workdocs:end id=script -->
+
+  <!-- workdocs:begin id=claims -->
+  <section id="claims">
+    <h2>Genuine vs simulated</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Claim in the narration</th><th>Status</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Each step runs in its own sandbox that is destroyed</td><td><span class="wd-tag mock">simulated</span> lifecycle code is real, the sandbox is a mock session</td><td><code>src/lib/sandbox/index.ts:123-130</code></td></tr>
+        <tr><td>The server adds the probe, not the model</td><td><span class="wd-tag real">genuine</span></td><td><code>src/lib/policy.ts:142-151</code> (<code>addedBy: "policy"</code>); unit test "inserts code probes for every code plan"</td></tr>
+        <tr><td>The API key is not visible inside the sandbox</td><td><span class="wd-tag real">genuine</span> env building and redaction; <span class="wd-tag mock">simulated</span> sandbox</td><td><code>src/lib/sandbox/redact.ts</code>; unit tests "secret hygiene"</td></tr>
+        <tr><td>Host disk, metadata, Docker socket blocked</td><td><span class="wd-tag mock">simulated</span></td><td><code>src/lib/sandbox/mock-sandbox.ts</code> pattern rules</td></tr>
+        <tr><td>2 GB allocation killed at 256 MiB</td><td><span class="wd-tag mock">simulated</span></td><td><code>src/lib/sandbox/mock-sandbox.ts:227-235</code> allocation estimate, exit 137</td></tr>
+        <tr><td>The agent repaired the column and retried</td><td><span class="wd-tag real">genuine</span> orchestrator retry; <span class="wd-tag mock">simulated</span> execution and template repair</td><td><code>src/lib/orchestrator.ts:110-116</code>, <code>src/lib/llm/mock-llm.ts:122-132</code></td></tr>
+        <tr><td>Egress limited to typed ∩ allowlisted hosts</td><td><span class="wd-tag real">genuine</span> rules; <span class="wd-tag mock">simulated</span> network</td><td><code>src/lib/policy.ts:153-156</code>; unit test "prompt-injected allowlist hosts never get in"</td></tr>
+        <tr><td>Side effects wait for a human; Deny never runs</td><td><span class="wd-tag real">genuine</span></td><td><code>src/lib/orchestrator.ts:56-68</code>; browser run: Deny → 4/5, submit skipped</td></tr>
+        <tr><td>The receipt is signed and verifiable offline</td><td><span class="wd-tag real">genuine</span> (ephemeral key unless <code>RECEIPT_SIGNING_KEY</code> is set)</td><td><code>src/lib/sandbox/signing.ts</code>, <code>scripts/verify-receipt.mjs</code>; tampered copy → exit 1</td></tr>
+        <tr><td>Vultr Serverless Inference and a Vultr VM</td><td><span class="wd-tag none">planned</span> not built</td><td><code>src/lib/llm/vultr-inference-llm.ts</code>, <code>src/lib/sandbox/vultr-sandbox.ts</code> (stubs)</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>May claim (genuine, server code):</strong> runs are private to the browser session that started them, only that session can approve its submit, and one caller cannot hog the sandbox queue (evidence: <code>tests/adversarial.probe.mjs</code>, all checks passed on 2026-11-07: 30/30 without a token, 32/32 with one). <strong>Do not claim:</strong> verified host isolation, real accounts or user logins (a session is an anonymous cookie), or limits that survive a restart or span several servers. See <a href="security.html#gaps">Security → Known gaps</a>.</p>
+    <p class="wd-source">Source: the files and tests listed; <code>tests/confinement.test.ts</code></p>
+  </section>
+  <!-- workdocs:end id=claims -->
+
+  <!-- workdocs:begin id=fallback -->
+  <section id="fallback">
+    <h2>Fallbacks</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Failure</th><th>What to do live</th></tr></thead>
+      <tbody>
+        <tr><td>Server does not start, or port 3000 is busy</td><td>Start on another port (<code>npx next start -p 3117 -H 127.0.0.1</code>) and use that URL; keep a pre-recorded clip of steps 2–6 ready</td></tr>
+        <tr><td>A run stays on "Running…"</td><td>All 3 slots may be busy from earlier runs; wait a few seconds (mock runs drain quickly, and slots are shared round-robin), or restart the server (receipts signed before the restart no longer verify with an ephemeral key, and the browser starts a new session)</td></tr>
+        <tr><td>Chat shows <code>429 … active run(s)</code> or <code>rate limited</code></td><td>Per-session limits (2 active runs, 10 dispatches and 20 plans per minute); wait for the current run to finish or a minute to pass</td></tr>
+        <tr><td>The page shows "This server needs an access token"</td><td>The server has <code>PROOFBOX_DEMO_TOKEN</code> set; paste it off screen, or restart locally without it</td></tr>
+        <tr><td>Every call fails with 403 "local mode only answers loopback hosts"</td><td>The page was opened through a LAN address or domain; open <code>http://127.0.0.1:&lt;port&gt;</code> instead</td></tr>
+        <tr><td>A step fails unexpectedly</td><td>Say it is a mock run, switch to another preset, continue with the next step</td></tr>
+        <tr><td><strong>verify</strong> in the browser shows no signature result</td><td>The browser lacks WebCrypto Ed25519; use the CLI command from step 3</td></tr>
+        <tr><td>CLI warns about a keyId mismatch or cannot connect</td><td>Wrong <code>--base</code>, or the server restarted; pass the correct app URL, or skip to the in-browser check</td></tr>
+        <tr><td>Running out of time</td><td>Drop step 5; keep steps 4 and 6 (containment moment and human gate)</td></tr>
+      </tbody>
+    </table></div>
+    <p class="wd-source">Source: <code>src/lib/sandbox/index.ts</code> (slots), <code>src/lib/sandbox/signing.ts</code>, <code>src/components/ReceiptViewer.tsx:22-28</code>, <code>scripts/verify-receipt.mjs:29</code></p>
+  </section>
+  <!-- workdocs:end id=fallback -->
+
+  <!-- workdocs:begin id=cleanup -->
+  <section id="cleanup">
+    <h2>Cleanup</h2>
+    <ol>
+      <li>Stop the server you started with <code>kill &lt;PID&gt;</code>, only that PID. Do not kill by name: other services may run on the machine.</li>
+      <li>Delete the downloaded <code>receipt-*.json</code> files.</li>
+      <li>Close the browser tabs and the recorder; check the recording for any key, email address or token in frame.</li>
+      <li>Runs live in memory only, so stopping the server clears them.</li>
+    </ol>
+    <p class="wd-source">Source: <code>src/lib/store.ts</code></p>
+  </section>
+  <!-- workdocs:end id=cleanup -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07, updated the same day after the security fixes (the project has no git history); sources: src/lib/presets.ts, src/components/*, src/lib/*, scripts/verify-receipt.mjs, tests/confinement.test.ts, PLAN.md, browser run of 2026-11-07. Static page: re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

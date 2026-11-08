@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "d00a64aa-1bbd-43b0-b01a-1a43ce97a2e5",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-vultr-planned-20261107-163430/candidate.json",
+  "output": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-vultr-planned-20261107-163430/architecture-vultr-planned.html",
+  "specification": {
+    "sha256": "dffd66c9e595de9a168fd7d5a0cb8accedb502a2cad9ed02c4bf7ac6d3fb7734",
+    "bytes": 4443
+  },
+  "artifact": {
+    "sha256": "104d8ee2dc6f7d1f5981a9127118cf19c60ea55e3debc502c83af8667ad67ef1",
+    "bytes": 759551
+  }
+}

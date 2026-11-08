@@ -1,0 +1,30 @@
+{
+  "name": "proofbox",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ProofBox — containment-first agent control plane (Vultr Agent Rush, Challenge 1: Blast Radius Zero). Mock-first build.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/smoke.mjs",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "verify-receipt": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-receipt.mjs"
+  },
+  "dependencies": {
+    "next": "^16.4.5",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.4",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4.3.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9"
+  }
+}

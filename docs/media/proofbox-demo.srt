@@ -1,0 +1,148 @@
+1
+00:00:00,600 --> 00:00:05,563
+This is ProofBox, a containment-first control plane for AI agents.
+
+2
+00:00:05,563 --> 00:00:08,721
+Built for Vultr Agent Rush, challenge one:
+
+3
+00:00:08,721 --> 00:00:10,075
+Blast Radius Zero.
+
+4
+00:00:11,700 --> 00:00:14,454
+Agents now run code and drive browsers.
+
+5
+00:00:14,454 --> 00:00:21,941
+One bad step can read your API keys, hit the cloud metadata endpoint, or submit a form you never approved.
+
+6
+00:00:21,941 --> 00:00:25,825
+You need to contain every step, and prove that you did.
+
+7
+00:00:27,433 --> 00:00:31,493
+ProofBox puts a control plane between the model and the machine.
+
+8
+00:00:31,493 --> 00:00:38,977
+The server validates every plan, adds its own containment probes, and puts a human gate on anything with side effects.
+
+9
+00:00:38,977 --> 00:00:45,383
+Each step runs in a fresh sandbox that is destroyed afterwards, and comes back with a signed receipt.
+
+10
+00:00:47,000 --> 00:00:48,743
+One note before the demo.
+
+11
+00:00:48,743 --> 00:00:50,765
+This build runs in mock mode.
+
+12
+00:00:50,765 --> 00:00:55,157
+The sandbox is simulated, and the app says so on every receipt.
+
+13
+00:00:55,157 --> 00:00:59,200
+The policy rules and the receipt signatures are real code.
+
+14
+00:01:00,800 --> 00:01:01,951
+Prove-It Python.
+
+15
+00:01:01,951 --> 00:01:02,670
+The claim:
+
+16
+00:01:02,670 --> 00:01:07,128
+the sum of primes below one hundred is one thousand and sixty.
+
+17
+00:01:07,128 --> 00:01:15,255
+The planner writes the step, the server dispatches it, and the receipt comes back hashed and signed with Ed25519.
+
+18
+00:01:15,255 --> 00:01:18,275
+I can verify it right here in the browser.
+
+19
+00:01:19,700 --> 00:01:21,491
+Now the containment moment.
+
+20
+00:01:21,491 --> 00:01:24,410
+The server, not the model, added this probe.
+
+21
+00:01:24,410 --> 00:01:29,916
+It tries to read the API key, the host disk, cloud metadata, and the Docker socket.
+
+22
+00:01:29,916 --> 00:01:32,968
+All blocked, and the secret shows up redacted.
+
+23
+00:01:32,968 --> 00:01:36,550
+A two gigabyte allocation is killed at the memory cap.
+
+24
+00:01:38,000 --> 00:01:38,876
+CSV Analyst.
+
+25
+00:01:38,876 --> 00:01:46,250
+The agent guesses the wrong column, sees the key error, fixes it, and retries in a brand new sandbox.
+
+26
+00:01:46,250 --> 00:01:51,725
+Trying to post the data to an outside host is blocked by the egress policy.
+
+27
+00:01:53,133 --> 00:01:54,638
+Research with Receipts.
+
+28
+00:01:54,638 --> 00:01:59,805
+The browser may only reach hosts I typed that are also on the server allowlist.
+
+29
+00:01:59,805 --> 00:02:03,533
+Before the form is submitted, ProofBox stops and asks me.
+
+30
+00:02:03,533 --> 00:02:05,757
+I deny, and the submit never runs.
+
+31
+00:02:05,757 --> 00:02:10,008
+I run it again and approve, and the receipt records the decision.
+
+32
+00:02:10,933 --> 00:02:12,217
+What is real today:
+
+33
+00:02:12,217 --> 00:02:21,878
+plan validation, server-inserted probes, the human gate, the egress allowlist, secret redaction, and signed receipts anyone can verify offline.
+
+34
+00:02:21,878 --> 00:02:22,959
+What comes next:
+
+35
+00:02:22,959 --> 00:02:29,783
+Vultr Serverless Inference for the model calls, and Docker with gVisor on a Vultr VM for the sandbox.
+
+36
+00:02:31,400 --> 00:02:32,139
+ProofBox.
+
+37
+00:02:32,139 --> 00:02:34,850
+Blast radius zero, with receipts.
+

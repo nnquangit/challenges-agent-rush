@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Diagrams · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html">Overview</a>
+    <a class="wd-link" href="setup.html">Setup</a>
+    <a class="wd-link" href="how-it-works.html">How it works</a>
+    <a class="wd-link" href="security.html">Security</a>
+    <a class="wd-link" href="api.html">API</a>
+    <a class="wd-link" href="demo.html">Demo script</a>
+    <a class="wd-link" href="diagrams.html" aria-current="page">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>Diagrams</h1>
+    <p class="wd-lead">Seven interactive diagrams drawn from the current code, grouped by the work map features they explain.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> Every diagram labels <code>MockLlm</code> and <code>MockSandbox</code> as simulated: no container or VM runs. The Vultr diagram shows a planned target that is not deployed.</p>
+
+  <!-- workdocs:begin id=intro -->
+  <section id="intro">
+    <h2>How to read this page</h2>
+    <p>Each diagram is a self-contained HTML file in <code>docs/diagrams/</code>, generated with Archify from a JSON source in <code>.archify/&lt;run&gt;/candidate.json</code>. A preview is embedded below; open the file for full screen, pan and zoom. The feature ids (for example <code>P15</code>) match the <a href="workmap.html">work map</a>.</p>
+    <div class="wd-cards">
+      <a class="wd-card" href="#architecture"><strong>Architecture</strong><p>Current components and calls (Epic 5, P6, P10, P11).</p></a>
+      <a class="wd-card" href="#run"><strong>Plan and run</strong><p>Sequence of one run, one sandbox per step (P6, P7).</p></a>
+      <a class="wd-card" href="#gate"><strong>Human gate</strong><p>Approve and Deny paths before a submit (P6, T12).</p></a>
+      <a class="wd-card" href="#lifecycle"><strong>Step lifecycle</strong><p>Every <code>StepStatus</code> and how it changes (P6).</p></a>
+      <a class="wd-card" href="#policy"><strong>Policy</strong><p>Rules the server applies to every plan (P15).</p></a>
+      <a class="wd-card" href="#receipt"><strong>Receipt pipeline</strong><p>Scrub, seal after destroy, verify (P16).</p></a>
+      <a class="wd-card" href="#vultr"><strong>Vultr target (planned)</strong><p>Intended deployment, not built (P19).</p></a>
+    </div>
+  </section>
+  <!-- workdocs:end id=intro -->
+
+  <!-- workdocs:begin id=architecture -->
+  <section id="architecture">
+    <h2>Architecture (current code)</h2>
+    <p class="wd-source">Work map: Epic 5 Product, P6 Control plane, P10 LLM, P11 Sandbox (diagram task T7)</p>
+    <p>The browser UI starts a session (<code>POST /api/session</code>, HttpOnly cookie) and calls the API routes, which all check that session (<code>requireSession</code> in <code>src/lib/access.ts</code>; plans and runs belong to its principal); <code>POST /api/chat</code> plans and applies the policy, <code>POST /api/runs</code> starts the orchestrator, and <code>runInSandbox()</code> is the only way code reaches a sandbox, through the fair, bounded <code>SlotPool</code>. <code>getLlm()</code> and <code>getSandboxProvider()</code> pick the mocks while <code>MOCK=1</code>.</p>
+    <figure style="margin:0">
+      <iframe src="diagrams/architecture-current.html" title="ProofBox architecture, current code" loading="lazy" style="display:block;width:100%;height:560px;border:1px solid var(--wd-line);border-radius:8px;background:var(--wd-node)"></iframe>
+      <figcaption class="wd-source"><a href="diagrams/architecture-current.html">Open full screen</a> · source <code>.archify/architecture-proofbox-current-20261107-220549/candidate.json</code></figcaption>
+    </figure>
+    <p class="wd-source">Source: <code>src/app/api/*</code>, <code>src/lib/orchestrator.ts</code>, <code>src/lib/sandbox/index.ts:runInSandbox</code>, <code>src/lib/llm/index.ts:getLlm</code></p>
+  </section>
+  <!-- workdocs:end id=architecture -->
+
+  <!-- workdocs:begin id=run -->
+  <section id="run">
+    <h2>Plan, then run each step in its own sandbox</h2>
+    <p class="wd-source">Work map: P6 Control plane, P7 API (T11, T14)</p>
+    <p>Sequence diagram. Planning runs nothing: the chat route asks the planner, applies <code>enforcePolicy()</code> and stores the plan. A run is started from a stored <code>planId</code>; for every step the orchestrator calls <code>runInSandbox()</code>, which creates, executes, collects artifacts, destroys the sandbox in <code>finally</code> and seals the receipt. The UI polls the run every 450 ms.</p>
+    <figure style="margin:0">
+      <iframe src="diagrams/sequence-plan-run.html" title="Sequence: plan, then run each step" loading="lazy" style="display:block;width:100%;height:560px;border:1px solid var(--wd-line);border-radius:8px;background:var(--wd-node)"></iframe>
+      <figcaption class="wd-source"><a href="diagrams/sequence-plan-run.html">Open full screen</a> · source <code>.archify/sequence-plan-run-20261107-163430/candidate.json</code></figcaption>
+    </figure>
+    <p class="wd-source">Source: <code>src/app/api/chat/route.ts:POST</code>, <code>src/lib/policy.ts:enforcePolicy</code>, <code>src/app/api/runs/route.ts:POST</code>, <code>src/lib/orchestrator.ts:startRun</code>, <code>src/lib/orchestrator.ts:executeStep</code>, <code>src/lib/sandbox/index.ts:runInSandbox</code>, <code>src/components/ProofBoxApp.tsx</code> (poll)</p>
+  </section>
+  <!-- workdocs:end id=run -->
+
+  <!-- workdocs:begin id=gate -->
+  <section id="gate">
+    <h2>Human confirm gate</h2>
+    <p class="wd-source">Work map: P6 Control plane (T12 Human confirm)</p>
+    <p>Sequence diagram. Before a step with side effects (every browser <code>submit</code>), the run pauses at <code>awaiting_confirm</code> and the dialog opens with Deny focused. Only the session that owns the run can decide (anyone else gets 404), and only once (409 for a replay). Approve resumes the run and the submit step runs in a fresh simulated sandbox; Deny marks the step <code>skipped</code> and nothing is submitted.</p>
+    <figure style="margin:0">
+      <iframe src="diagrams/sequence-confirm-gate.html" title="Sequence: human confirm gate" loading="lazy" style="display:block;width:100%;height:560px;border:1px solid var(--wd-line);border-radius:8px;background:var(--wd-node)"></iframe>
+      <figcaption class="wd-source"><a href="diagrams/sequence-confirm-gate.html">Open full screen</a> · source <code>.archify/sequence-confirm-gate-20261107-220809/candidate.json</code></figcaption>
+    </figure>
+    <p class="wd-source">Source: <code>src/lib/orchestrator.ts:advance</code>, <code>src/lib/orchestrator.ts:confirmStep</code>, <code>src/app/api/runs/[id]/confirm/route.ts:POST</code>, <code>src/components/ConfirmDialog.tsx</code></p>
+  </section>
+  <!-- workdocs:end id=gate -->
+
+  <!-- workdocs:begin id=lifecycle -->
+  <section id="lifecycle">
+    <h2>Step status lifecycle</h2>
+    <p class="wd-source">Work map: P6 Control plane</p>
+    <p>Lifecycle diagram of <code>StepStatus</code>: <code>pending</code>, <code>running</code>, <code>awaiting_confirm</code>, <code>succeeded</code>, <code>failed</code>, <code>skipped</code>. A failed code step is repaired once by <code>llm.repair()</code> while it stays <code>running</code> (<code>MAX_ATTEMPTS = 2</code>). The run status (<code>RunStatus</code>) is summarised in the diagram's cards.</p>
+    <figure style="margin:0">
+      <iframe src="diagrams/lifecycle-run-step.html" title="Lifecycle: step statuses" loading="lazy" style="display:block;width:100%;height:560px;border:1px solid var(--wd-line);border-radius:8px;background:var(--wd-node)"></iframe>
+      <figcaption class="wd-source"><a href="diagrams/lifecycle-run-step.html">Open full screen</a> · source <code>.archify/lifecycle-run-step-20261107-163430/candidate.json</code></figcaption>
+    </figure>
+    <p class="wd-source">Source: <code>src/lib/types.ts</code> (<code>StepStatus</code>, <code>RunStatus</code>), <code>src/lib/orchestrator.ts:advance</code>, <code>src/lib/orchestrator.ts:executeStep</code></p>
+  </section>
+  <!-- workdocs:end id=lifecycle -->
+
+  <!-- workdocs:begin id=policy -->
+  <section id="policy">
+    <h2>Control-plane policy</h2>
+    <p class="wd-source">Work map: P15 Control-plane rules (T29, T30)</p>
+    <p>Workflow diagram. Every plan from any planner goes through <code>validatePlan()</code>, then the server clears planner-set probe flags, forces a confirm on every browser submit, inserts its own probes before the first gated step and sets the egress allowlist to hosts the user typed that are also on the server list. At run time the orchestrator and <code>runInSandbox()</code> check again. The blocks themselves are enforced by <code>MockSandbox</code> rules (simulated).</p>
+    <figure style="margin:0">
+      <iframe src="diagrams/workflow-policy.html" title="Workflow: control-plane policy" loading="lazy" style="display:block;width:100%;height:560px;border:1px solid var(--wd-line);border-radius:8px;background:var(--wd-node)"></iframe>
+      <figcaption class="wd-source"><a href="diagrams/workflow-policy.html">Open full screen</a> · source <code>.archify/workflow-policy-20261107-163430/candidate.json</code></figcaption>
+    </figure>
+    <p class="wd-source">Source: <code>src/lib/policy.ts:validatePlan</code>, <code>src/lib/policy.ts:enforcePolicy</code>, <code>src/lib/policy.ts:userHosts</code>, <code>src/lib/orchestrator.ts:advance</code>, <code>src/lib/sandbox/index.ts:runInSandbox</code></p>
+  </section>
+  <!-- workdocs:end id=policy -->
+
+  <!-- workdocs:begin id=receipt -->
+  <section id="receipt">
+    <h2>Receipt pipeline</h2>
+    <p class="wd-source">Work map: P16 Verifiable receipts (T31, T32)</p>
+    <p>Data-flow diagram. Sandbox output is scrubbed by <code>redactText()</code>, combined with limits, env, timestamps and the isolation report read after <code>destroy()</code>, turned into sorted-key JSON by <code>receiptPayload()</code>, and sealed with sha256 + Ed25519. The browser and <code>scripts/verify-receipt.mjs</code> recompute the same bytes. A valid signature proves the receipt was not edited; in mock mode the isolation report is still simulated.</p>
+    <figure style="margin:0">
+      <iframe src="diagrams/dataflow-receipt.html" title="Data flow: receipt pipeline" loading="lazy" style="display:block;width:100%;height:560px;border:1px solid var(--wd-line);border-radius:8px;background:var(--wd-node)"></iframe>
+      <figcaption class="wd-source"><a href="diagrams/dataflow-receipt.html">Open full screen</a> · source <code>.archify/dataflow-receipt-20261107-163430/candidate.json</code></figcaption>
+    </figure>
+    <p class="wd-source">Source: <code>src/lib/sandbox/redact.ts:redactText</code>, <code>src/lib/sandbox/index.ts:runInSandbox</code>, <code>src/lib/receipt-canonical.ts:receiptPayload</code>, <code>src/lib/sandbox/signing.ts:sealReceipt</code>, <code>src/components/ReceiptViewer.tsx:verifyReceipt</code>, <code>scripts/verify-receipt.mjs</code></p>
+  </section>
+  <!-- workdocs:end id=receipt -->
+
+  <!-- workdocs:begin id=vultr -->
+  <section id="vultr">
+    <h2>Vultr target deployment (planned, not deployed)</h2>
+    <p class="wd-source">Work map: P19 Vultr phase, paused (T39 real sandbox, T40 deploy on a Vultr VM, T41 Vultr Inference)</p>
+    <p class="wd-note"><strong>Planned only.</strong> <code>VultrSandbox</code> and <code>VultrInferenceLlm</code> are stubs that throw; no Vultr account is connected and the app makes no Vultr calls.</p>
+    <p>Architecture diagram of the intended setup: the Next.js app and a sandbox runner on one Vultr Cloud Compute VM, one Docker container with gVisor per step (<code>--network none</code> or an egress proxy, read-only rootfs, no capabilities), and Vultr Serverless Inference for the planner. The policy, human gate, redaction and receipt code stay the same.</p>
+    <figure style="margin:0">
+      <iframe src="diagrams/architecture-vultr-planned.html" title="Architecture: planned Vultr deployment" loading="lazy" style="display:block;width:100%;height:560px;border:1px solid var(--wd-line);border-radius:8px;background:var(--wd-node)"></iframe>
+      <figcaption class="wd-source"><a href="diagrams/architecture-vultr-planned.html">Open full screen</a> · source <code>.archify/architecture-vultr-planned-20261107-163430/candidate.json</code></figcaption>
+    </figure>
+    <p class="wd-source">Source: <code>src/lib/sandbox/vultr-sandbox.ts</code> (header comment, <code>create</code>), <code>src/lib/llm/vultr-inference-llm.ts</code>, <code>README.md</code> "Vultr services used", <code>.env.example</code> (names only)</p>
+  </section>
+  <!-- workdocs:end id=vultr -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07, architecture and confirm-gate diagrams regenerated the same day after the security fixes (the project has no git history); diagrams generated with Archify 3.0.1 from the sources listed. Static page: regenerate the diagrams and re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

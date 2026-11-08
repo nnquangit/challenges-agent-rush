@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3748707b-e07e-4c6b-9d5d-c18e958ff3ce",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/candidate.json",
+  "output": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/architecture-proofbox-current-20261107-220549/architecture-current.html",
+  "specification": {
+    "sha256": "27440b3734aa3c420141dec9e49155536e93724740f4becd2652a6a5a6f4fb49",
+    "bytes": 11374
+  },
+  "artifact": {
+    "sha256": "02104a21a94ff17b4015a7084e4ee8186cd1c4e2893d0d2d372a6d55fbfe68de",
+    "bytes": 800862
+  }
+}

@@ -1,0 +1,519 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ProofBox architecture, current code (mock-first, 2026-11-07)",
+    "output": "docs/diagrams/architecture-current.html",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "Browser UI",
+      "sublabel": "ProofBoxApp.tsx",
+      "tag": "Next.js page",
+      "pos": [
+        20,
+        190
+      ],
+      "size": [
+        120,
+        286
+      ]
+    },
+    {
+      "id": "client",
+      "type": "external",
+      "label": "API client",
+      "sublabel": "curl / scripts",
+      "pos": [
+        20,
+        660
+      ],
+      "size": [
+        120,
+        56
+      ]
+    },
+    {
+      "id": "r-status",
+      "type": "backend",
+      "label": "GET /api/status",
+      "sublabel": "mode, limits, slots",
+      "pos": [
+        210,
+        60
+      ],
+      "size": [
+        190,
+        56
+      ]
+    },
+    {
+      "id": "r-chat",
+      "type": "security",
+      "label": "POST /api/chat",
+      "sublabel": "plan → enforcePolicy()",
+      "pos": [
+        210,
+        190
+      ],
+      "size": [
+        190,
+        56
+      ]
+    },
+    {
+      "id": "r-poll",
+      "type": "backend",
+      "label": "GET /api/runs[/:id]",
+      "sublabel": "list + read, no auth",
+      "pos": [
+        210,
+        300
+      ],
+      "size": [
+        190,
+        56
+      ]
+    },
+    {
+      "id": "r-runs",
+      "type": "backend",
+      "label": "POST /api/runs",
+      "sublabel": "{planId}; no token/limit",
+      "pos": [
+        210,
+        420
+      ],
+      "size": [
+        190,
+        56
+      ]
+    },
+    {
+      "id": "r-confirm",
+      "type": "security",
+      "label": "POST /api/runs/:id/confirm",
+      "sublabel": "human gate",
+      "pos": [
+        210,
+        530
+      ],
+      "size": [
+        190,
+        56
+      ]
+    },
+    {
+      "id": "r-exec",
+      "type": "security",
+      "label": "POST /api/sandbox/exec",
+      "sublabel": "token?, per-IP limit, no submit",
+      "pos": [
+        210,
+        660
+      ],
+      "size": [
+        190,
+        56
+      ]
+    },
+    {
+      "id": "r-key",
+      "type": "backend",
+      "label": "GET /api/receipts/public-key",
+      "sublabel": "Ed25519 SPKI, keyId",
+      "pos": [
+        210,
+        900
+      ],
+      "size": [
+        190,
+        56
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "In-memory store",
+      "sublabel": "plans, runs, locks",
+      "tag": "store.ts, max 200",
+      "pos": [
+        495,
+        190
+      ],
+      "size": [
+        170,
+        166
+      ]
+    },
+    {
+      "id": "orch",
+      "type": "backend",
+      "label": "Orchestrator",
+      "sublabel": "walks steps, max 2 attempts",
+      "tag": "pauses on requiresConfirm",
+      "pos": [
+        495,
+        420
+      ],
+      "size": [
+        170,
+        166
+      ]
+    },
+    {
+      "id": "runbox",
+      "type": "security",
+      "label": "runInSandbox()",
+      "sublabel": "create, exec, destroy",
+      "tag": "slot cap, destroy in finally",
+      "pos": [
+        495,
+        650
+      ],
+      "size": [
+        170,
+        76
+      ]
+    },
+    {
+      "id": "redact",
+      "type": "security",
+      "label": "redact.ts",
+      "sublabel": "env allowlist, output scrub",
+      "pos": [
+        495,
+        790
+      ],
+      "size": [
+        170,
+        56
+      ]
+    },
+    {
+      "id": "signing",
+      "type": "security",
+      "label": "signing.ts",
+      "sublabel": "sha256 + Ed25519 seal",
+      "pos": [
+        210,
+        790
+      ],
+      "size": [
+        190,
+        56
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "backend",
+      "label": "LlmProvider",
+      "sublabel": "plan/repair/verify/explain",
+      "tag": "getLlm()",
+      "pos": [
+        775,
+        420
+      ],
+      "size": [
+        150,
+        166
+      ]
+    },
+    {
+      "id": "sbprov",
+      "type": "backend",
+      "label": "SandboxProvider",
+      "sublabel": "one session per step",
+      "tag": "getSandboxProvider()",
+      "pos": [
+        775,
+        650
+      ],
+      "size": [
+        150,
+        76
+      ]
+    },
+    {
+      "id": "mockllm",
+      "type": "backend",
+      "label": "MockLlm",
+      "sublabel": "template plans, no model",
+      "tag": "ACTIVE",
+      "pos": [
+        990,
+        440
+      ],
+      "size": [
+        165,
+        56
+      ]
+    },
+    {
+      "id": "vultrllm",
+      "type": "external",
+      "label": "VultrInferenceLlm",
+      "sublabel": "throws: not implemented",
+      "tag": "STUB, inactive",
+      "pos": [
+        990,
+        530
+      ],
+      "size": [
+        165,
+        56
+      ]
+    },
+    {
+      "id": "mocksb",
+      "type": "backend",
+      "label": "MockSandbox",
+      "sublabel": "no code runs: fixtures, rules",
+      "tag": "ACTIVE, SIMULATED",
+      "pos": [
+        990,
+        650
+      ],
+      "size": [
+        165,
+        76
+      ]
+    },
+    {
+      "id": "vultrsb",
+      "type": "external",
+      "label": "VultrSandbox",
+      "sublabel": "throws: not implemented",
+      "tag": "STUB, inactive",
+      "pos": [
+        990,
+        790
+      ],
+      "size": [
+        165,
+        56
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Simulated sandbox (no container or VM)",
+      "wraps": [
+        "mocksb"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "ui-status",
+      "from": "ui",
+      "to": "r-status",
+      "label": "mode"
+    },
+    {
+      "id": "ui-chat",
+      "from": "ui",
+      "to": "r-chat",
+      "label": "message",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ui-poll",
+      "from": "ui",
+      "to": "r-poll",
+      "label": "poll"
+    },
+    {
+      "id": "ui-runs",
+      "from": "ui",
+      "to": "r-runs",
+      "label": "planId",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ui-confirm",
+      "from": "ui",
+      "to": "r-confirm",
+      "label": "yes/no",
+      "variant": "security"
+    },
+    {
+      "id": "client-exec",
+      "from": "client",
+      "to": "r-exec",
+      "label": "ad-hoc"
+    },
+    {
+      "id": "client-key",
+      "from": "client",
+      "to": "r-key",
+      "label": "verify-receipt"
+    },
+    {
+      "id": "chat-store",
+      "from": "r-chat",
+      "to": "store",
+      "label": "savePlan (after policy)"
+    },
+    {
+      "id": "chat-llm",
+      "from": "r-chat",
+      "to": "llm",
+      "label": "plan()",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          305,
+          160
+        ],
+        [
+          850,
+          160
+        ]
+      ]
+    },
+    {
+      "id": "poll-store",
+      "from": "r-poll",
+      "to": "store",
+      "label": "read run"
+    },
+    {
+      "id": "runs-orch",
+      "from": "r-runs",
+      "to": "orch",
+      "label": "startRun",
+      "variant": "emphasis"
+    },
+    {
+      "id": "confirm-orch",
+      "from": "r-confirm",
+      "to": "orch",
+      "label": "confirmStep",
+      "variant": "security"
+    },
+    {
+      "id": "orch-store",
+      "from": "orch",
+      "to": "store",
+      "label": "saveRun, events"
+    },
+    {
+      "id": "orch-llm",
+      "from": "orch",
+      "to": "llm",
+      "label": "LLM calls"
+    },
+    {
+      "id": "orch-runbox",
+      "from": "orch",
+      "to": "runbox",
+      "label": "every step",
+      "variant": "emphasis"
+    },
+    {
+      "id": "exec-runbox",
+      "from": "r-exec",
+      "to": "runbox",
+      "label": "one-off"
+    },
+    {
+      "id": "runbox-redact",
+      "from": "runbox",
+      "to": "redact",
+      "label": "redact env + scrub",
+      "variant": "security"
+    },
+    {
+      "id": "key-signing",
+      "from": "r-key",
+      "to": "signing",
+      "label": "public key"
+    },
+    {
+      "id": "runbox-sbprov",
+      "from": "runbox",
+      "to": "sbprov",
+      "label": "per attempt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "llm-mock",
+      "from": "llm",
+      "to": "mockllm",
+      "label": "MOCK=1"
+    },
+    {
+      "id": "llm-vultr",
+      "from": "llm",
+      "to": "vultrllm",
+      "label": "MOCK=0",
+      "variant": "dashed"
+    },
+    {
+      "id": "sb-mock",
+      "from": "sbprov",
+      "to": "mocksb",
+      "label": "MOCK=1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "sb-vultr",
+      "from": "sbprov",
+      "to": "vultrsb",
+      "label": "MOCK=0",
+      "variant": "dashed"
+    },
+    {
+      "id": "runbox-signing",
+      "from": "runbox",
+      "to": "signing",
+      "label": "seal after destroy",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Main journey",
+      "items": [
+        "POST /api/chat: LLM plans, enforcePolicy validates and adds probes; nothing runs",
+        "POST /api/runs starts the orchestrator on a stored planId",
+        "The UI polls GET /api/runs/:id for receipts"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Controls in server code",
+      "items": [
+        "Server-inserted probes, forced confirm on submit, egress = user hosts ∩ server allowlist",
+        "One sandbox session per attempt, destroy() in finally, max SANDBOX_MAX_CONCURRENT slots",
+        "Whole receipt hashed (sha256) and signed (Ed25519) after destroy"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Not protected yet",
+      "items": [
+        "Token and rate limit cover only /api/sandbox/exec; chat and runs are open",
+        "Rate-limit key trusts client x-forwarded-for; runs readable without auth",
+        "MockSandbox runs no code: isolation is simulated, not proven"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Mode switch",
+      "items": [
+        "MOCK defaults to on; only MOCK=0 selects the Vultr stubs",
+        "VultrInferenceLlm (Vultr Serverless Inference) and VultrSandbox (Docker + gVisor VM) are planned stubs that throw; nothing calls Vultr"
+      ]
+    }
+  ]
+}

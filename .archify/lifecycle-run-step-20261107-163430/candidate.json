@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "ProofBox step status lifecycle (StepStatus in src/lib/types.ts)",
+    "output": ".archify/lifecycle-run-step-20261107-163430/lifecycle-run-step.html",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "main", "label": "Step path" },
+    { "id": "waiting", "label": "Human gate" },
+    { "id": "recovery", "label": "Repair loop (code steps)" },
+    { "id": "terminal", "label": "Other endings" }
+  ],
+  "states": [
+    { "id": "pending", "type": "start", "label": "pending", "sublabel": "startRun() creates it", "lane": "main", "col": 0, "step": "01", "tag": "StepStatus" },
+    { "id": "running", "type": "active", "label": "running", "sublabel": "executeStep()", "lane": "main", "col": 1, "step": "02", "tag": "StepStatus" },
+    { "id": "succeeded", "type": "success", "label": "succeeded", "sublabel": "exit 0 or probe held", "lane": "main", "col": 3, "step": "03", "tag": "StepStatus" },
+    { "id": "awaiting", "type": "waiting", "label": "awaiting_confirm", "sublabel": "Approve / Deny dialog", "lane": "waiting", "col": 0, "tag": "StepStatus" },
+    { "id": "repair", "type": "neutral", "label": "llm.repair()", "sublabel": "still running, attempt 2", "lane": "recovery", "col": 1, "tag": "not a status" },
+    { "id": "skipped", "type": "neutral", "label": "skipped", "sublabel": "denied, nothing sent", "lane": "terminal", "col": 0, "tag": "StepStatus" },
+    { "id": "failed", "type": "failure", "label": "failed", "sublabel": "no repair left", "lane": "terminal", "col": 2, "tag": "StepStatus" }
+  ],
+  "transitions": [
+    { "from": "pending", "to": "running", "label": "no gate" },
+    { "from": "running", "to": "succeeded", "label": "exit 0 / blocked" },
+    { "from": "pending", "to": "awaiting", "variant": "security", "label": "needs confirm" },
+    { "from": "awaiting", "to": "running", "variant": "emphasis", "label": "Approve" },
+    { "from": "awaiting", "to": "skipped", "variant": "security", "label": "Deny" },
+    { "from": "running", "to": "repair", "variant": "dashed", "label": "attempt 1 failed" },
+    { "from": "repair", "to": "running", "variant": "emphasis", "label": "retry" },
+    { "from": "running", "to": "failed", "variant": "security", "label": "failed" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Where each status is set",
+      "items": [
+        "pending: startRun() for every step; confirmStep() sets it again after a decision",
+        "awaiting_confirm: advance() before a requiresConfirm or browser submit step",
+        "running / succeeded / failed: advance() and executeStep() in src/lib/orchestrator.ts"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Shortcuts in this drawing",
+      "items": [
+        "Approve and Deny both pass through pending (confirmStep), then advance() runs or skips the step",
+        "llm.repair() is not a status: the step stays running while a code step is repaired once (MAX_ATTEMPTS = 2)",
+        "failed also covers: browser verdict not ok, probe not blocked, or the run aborting"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Run status (RunStatus)",
+      "items": [
+        "running → awaiting_confirm while any step waits → running again after a decision",
+        "succeeded unless any step failed, then failed; an exception aborts the run as failed"
+      ]
+    }
+  ]
+}

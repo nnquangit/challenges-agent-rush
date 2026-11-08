@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Security · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html">Overview</a>
+    <a class="wd-link" href="setup.html">Setup</a>
+    <a class="wd-link" href="how-it-works.html">How it works</a>
+    <a class="wd-link" href="security.html" aria-current="page">Security</a>
+    <a class="wd-link" href="api.html">API</a>
+    <a class="wd-link" href="demo.html">Demo script</a>
+    <a class="wd-link" href="diagrams.html">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>Security</h1>
+    <p class="wd-lead">What ProofBox protects, how, and what is not protected yet.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> No container or VM runs, and the app makes no calls to Vultr or any other external service. Results such as "blocked", "OOM-killed" and "destroyed" come from software rules in <code>MockSandbox</code>; they are not evidence of real isolation.</p>
+
+  <!-- workdocs:begin id=assets -->
+  <section id="assets">
+    <h2>Assets and trust boundaries</h2>
+    <p><strong>Protected:</strong> host secrets (Vultr and app keys), the host machine and its network (cloud metadata, loopback, private ranges), compute budget, user data passed into runs (messages, CSV files), and the integrity of receipts.</p>
+    <p><strong>Untrusted inputs:</strong> the LLM's plan (it can be wrong, or prompt-injected by pages and data it reads), every HTTP request body, and anything the sandboxed code or browser produces. Safety therefore lives in server code (policy, orchestrator, <code>runInSandbox</code>), not in the model's output.</p>
+    <p><strong>In this build the sandbox boundary is simulated:</strong> <code>MockSandbox</code> does not execute user code, so no kernel, container or VM tests the host-isolation claims. Mock unit tests prove the rules, never real isolation.</p>
+    <p class="wd-source">Source: <code>src/lib/policy.ts</code> (header comment), <code>src/lib/sandbox/mock-sandbox.ts</code> (header comment)</p>
+  </section>
+  <!-- workdocs:end id=assets -->
+
+  <!-- workdocs:begin id=threats -->
+  <section id="threats">
+    <h2>Threats and controls</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Threat</th><th>Control</th><th>Where</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>LLM omits the containment probe</td><td><code>enforcePolicy</code> appends standard probes</td><td><code>src/lib/policy.ts:142-151</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>LLM marks a normal step as a probe so a block counts as success</td><td>LLM-set probe flags are cleared</td><td><code>src/lib/policy.ts:129-134</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>LLM drops confirmation on a submit</td><td>Forced in policy, re-checked in the orchestrator</td><td><code>src/lib/policy.ts:135-138</code>, <code>src/lib/orchestrator.ts:56-62</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Prompt injection widens egress</td><td>Allowlist = hosts the user typed ∩ server list; clamped again in <code>runInSandbox</code></td><td><code>src/lib/policy.ts:153-156</code>, <code>src/lib/sandbox/index.ts:75-76</code></td><td><span class="wd-tag real">implemented</span> rules; <span class="wd-tag mock">simulated</span> network</td></tr>
+        <tr><td>Malformed or oversized plan</td><td><code>validatePlan</code> → 502, nothing runs</td><td><code>src/lib/policy.ts:78-109</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Client sends its own allowlist, steps or a submit</td><td><code>egressAllowlist</code> in the exec body → 400; exec allows only navigate/screenshot/fill; <code>/api/runs</code> takes only a stored <code>planId</code></td><td><code>src/app/api/sandbox/exec/route.ts:11,45,55</code>, <code>src/app/api/runs/route.ts:11-15</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Public demo used as free compute</td><td>Optional token (constant-time compare) + per-client rate limit on <code>/api/sandbox/exec</code>; global slot cap</td><td><code>src/app/api/sandbox/exec/route.ts:31-42</code>, <code>src/lib/sandbox/index.ts:18-34</code></td><td><span class="wd-tag partial">partial</span> chat and runs unprotected; XFF bypass</td></tr>
+        <tr><td>Reading other users' runs</td><td>None</td><td><code>src/app/api/runs/route.ts:19-28</code>, <code>src/app/api/runs/[id]/route.ts</code></td><td><span class="wd-tag none">none</span></td></tr>
+        <tr><td>Secret read inside the sandbox</td><td><code>buildSandboxEnv</code> drops the host env; <code>VULTR_*</code>/<code>PROOFBOX_*</code> secrets kept only as names with <code>[REDACTED]</code></td><td><code>src/lib/sandbox/redact.ts:26-49</code></td><td><span class="wd-tag real">implemented</span> env building; <span class="wd-tag mock">simulated</span> sandbox</td></tr>
+        <tr><td>Secret leaks in output</td><td><code>redactText</code> on stdout, stderr and text artifacts (host secret values + <code>sk-</code>, <code>gh*_</code>, AWS key id, JWT shapes)</td><td><code>src/lib/sandbox/redact.ts:52-73</code>, <code>src/lib/sandbox/index.ts:93-101</code></td><td><span class="wd-tag real">implemented</span></td></tr>
+        <tr><td>Reach metadata, loopback, private ranges</td><td><code>isForbiddenTarget</code> plus the allowlist</td><td><code>src/lib/sandbox/fixtures.ts:60-70</code></td><td><span class="wd-tag partial">partial</span> ranges missing; <span class="wd-tag mock">simulated</span> network</td></tr>
+        <tr><td>Read host files, <code>docker ps</code>, escape</td><td>Pattern rules in <code>MockSandbox</code></td><td><code>src/lib/sandbox/mock-sandbox.ts:65,73-85,123-131</code></td><td><span class="wd-tag mock">simulated</span></td></tr>
+        <tr><td>Memory bomb, infinite loop</td><td><code>resolveLimits</code> ceilings (30 s, 1024 MiB); mock kill 137 / 124</td><td><code>src/lib/config.ts:24-32</code>, <code>src/lib/sandbox/mock-sandbox.ts:227-243</code></td><td><span class="wd-tag mock">simulated</span> enforcement</td></tr>
+        <tr><td>Sandbox left running</td><td><code>destroy()</code> in <code>finally</code>; isolation read after destroy</td><td><code>src/lib/sandbox/index.ts:123-134</code></td><td><span class="wd-tag real">implemented</span> lifecycle; mock session</td></tr>
+        <tr><td>Receipt edited afterwards</td><td>sha256 + Ed25519 over the whole canonical receipt</td><td><code>src/lib/sandbox/signing.ts:40-49</code>, <code>src/lib/receipt-canonical.ts</code></td><td><span class="wd-tag real">implemented</span> (a tampered copy fails <code>verify-receipt</code>, checked 2026-11-07)</td></tr>
+        <tr><td>Badge claims containment without evidence</td><td><code>containmentVerdict</code> needs <code>destroyed</code>, <code>hostTouched === false</code>, a seal, and for probes a block or a kill</td><td><code>src/lib/containment.ts</code></td><td><span class="wd-tag real">implemented</span> logic; the mock writes its own evidence, so the badge says <code>CONTAINED (SIMULATED)</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>Tests: <code>tests/confinement.test.ts</code> (47 unit tests, all pass) covers forbidden targets, secret hygiene, limits, policy, receipt tampering, egress clamping, the slot cap, the verdict and the rate limit. <code>tests/server-policy.probe.mjs</code> against a running server: 80 pass, 1 fail (gap 2 below).</p>
+    <p>Diagrams of these controls: <a href="diagrams/workflow-policy.html">control-plane policy</a> (plan validation, probes, forced confirm, egress clamp) and <a href="diagrams/dataflow-receipt.html">receipt pipeline</a> (redaction, seal after <code>destroy()</code>, verification). Both label the mock enforcement as simulated; see <a href="diagrams.html">Diagrams</a>.</p>
+    <p class="wd-source">Source: files and lines in the table, read on 2026-11-07</p>
+  </section>
+  <!-- workdocs:end id=threats -->
+
+  <!-- workdocs:begin id=secrets -->
+  <section id="secrets">
+    <h2>Secrets handling</h2>
+    <ul>
+      <li>Secrets are supplied only as environment variables: <code>VULTR_INFERENCE_API_KEY</code>, <code>VULTR_SANDBOX_TOKEN</code>, <code>VULTR_API_KEY</code>, <code>PROOFBOX_DEMO_TOKEN</code>, <code>RECEIPT_SIGNING_KEY</code>. <code>.env.example</code> lists the names with empty values; no secret is needed in mock mode.</li>
+      <li>Inside a sandbox only <code>LANG</code>, <code>TZ</code> and a fixed <code>HOME</code>/<code>USER</code>/<code>PATH</code> are forwarded; scoped secrets appear as <code>[REDACTED]</code>; every other host variable is dropped.</li>
+      <li>Mock mode adds a public, fake canary key on the host so the demo can show redaction; it is not a secret (<code>src/lib/sandbox/index.ts:12-13</code>).</li>
+      <li>Signing key: without <code>RECEIPT_SIGNING_KEY</code> an ephemeral Ed25519 key is generated per process (<code>/api/receipts/public-key</code> reports <code>"ephemeral": true</code>), so receipts from before a restart no longer match the published key. The signature proves a receipt was not changed after sealing; it does not prove the server told the truth when sealing.</li>
+      <li>Never put keys in the repository, logs, screenshots or the client bundle.</li>
+    </ul>
+    <p class="wd-source">Source: <code>.env.example</code> (names only), <code>src/lib/sandbox/redact.ts</code>, <code>src/lib/sandbox/signing.ts:19-31</code></p>
+  </section>
+  <!-- workdocs:end id=secrets -->
+
+  <!-- workdocs:begin id=gaps -->
+  <section id="gaps">
+    <h2>Known gaps (unfixed)</h2>
+    <p>Each item was re-checked against the current code on 2026-11-07; none is fixed.</p>
+    <div class="wd-table"><table>
+      <thead><tr><th>#</th><th>Issue</th><th>Evidence</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>/api/chat</code> and <code>/api/runs</code> have no token and no rate limit; the same <code>planId</code> can be dispatched again and again; the slot wait queue has no bound</td><td><code>src/app/api/chat/route.ts:10</code>, <code>src/app/api/runs/route.ts:11-16</code>, <code>src/lib/sandbox/index.ts:19-25</code>; observed: 25/25 chat calls from one client → 200, one plan dispatched twice → 202 both times</td><td>high on a public deploy</td></tr>
+        <tr><td>2</td><td>The rate-limit key trusts the client's <code>x-forwarded-for</code>; rotating it bypasses the limit</td><td><code>src/lib/rate-limit.ts:19-22</code>; probe: 25/25 × 200 with rotating XFF</td><td>medium</td></tr>
+        <tr><td>3</td><td>Anyone can list and read every run (input, CSV, stdout) without auth</td><td><code>src/app/api/runs/route.ts:19-28</code>, <code>src/app/api/runs/[id]/route.ts</code>; probe: 22 runs visible</td><td>medium on a public deploy</td></tr>
+        <tr><td>4</td><td><code>isForbiddenTarget</code> lets through IPv4-compatible IPv6 (<code>[::7f00:1]</code>), <code>198.18.0.0/15</code>, multicast <code>224.0.0.0/4</code> and broadcast <code>255.255.255.255</code>; there is no check after DNS resolution (rebinding). Today these are stopped only by the allowlist</td><td><code>src/lib/sandbox/fixtures.ts:60-70</code>; each of the four returned <code>null</code> when called on 2026-11-07</td><td>low</td></tr>
+        <tr><td>5</td><td><code>verify-receipt</code> defaults <code>--base</code> to <code>http://localhost:3000</code>, which may be another service; a key fetched from the same server is not independent trust</td><td><code>scripts/verify-receipt.mjs:27</code></td><td>low</td></tr>
+        <tr><td>6</td><td>Simulated stderr reads like real kernel output ("seccomp profile", "exceeds cgroup cap", "OOM-killed") with no <code>[simulated]</code> prefix; a cropped screenshot can mislead</td><td><code>src/lib/sandbox/mock-sandbox.ts:128</code>, <code>:233</code></td><td>low (demo honesty)</td></tr>
+        <tr><td>7</td><td>No real isolation at all: container, VM, cgroups and network are simulated</td><td><code>src/lib/sandbox/mock-sandbox.ts</code>, <code>src/lib/sandbox/vultr-sandbox.ts:32-38</code></td><td>submission blocker</td></tr>
+        <tr><td>8</td><td>Rate limit and slot cap are in memory, single process</td><td><code>src/lib/rate-limit.ts:3</code>, <code>src/lib/sandbox/index.ts:18-19</code></td><td>low</td></tr>
+        <tr><td>9</td><td>The mock evaluates small arithmetic expressions on the host with <code>Function()</code>, restricted by a regex to digits, whitespace and <code>+ - * / ( ) . %</code> (at most 80 characters)</td><td><code>src/lib/sandbox/mock-sandbox.ts:33-43</code></td><td>low (no code from the user beyond arithmetic reaches it)</td></tr>
+      </tbody>
+    </table></div>
+    <p>Before any public deploy: fix 1 and 2 (preferably 3), set <code>PROOFBOX_DEMO_TOKEN</code> and <code>RECEIPT_SIGNING_KEY</code>.</p>
+    <p class="wd-source">Source: the files and lines listed; probe results from <code>tests/server-policy.probe.mjs</code> and curl against a local mock server on 2026-11-07</p>
+  </section>
+  <!-- workdocs:end id=gaps -->
+
+  <!-- workdocs:begin id=report -->
+  <section id="report">
+    <h2>Reporting a vulnerability</h2>
+    <p>Not stated: the project has no <code>SECURITY.md</code> and no published security contact. Until one exists, report privately to the maintainer rather than in a public issue.</p>
+    <p class="wd-source">Source: project tree (no <code>SECURITY.md</code>), <code>README.md</code></p>
+  </section>
+  <!-- workdocs:end id=report -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07 (the project has no git history); sources: src/lib/policy.ts, src/lib/orchestrator.ts, src/lib/sandbox/*, src/lib/rate-limit.ts, src/lib/config.ts, src/lib/containment.ts, src/app/api/*, scripts/verify-receipt.mjs, tests/, .env.example. Static page: re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Setup · ProofBox</title>
+  <meta name="generator" content="workdocs">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/workdocs.css">
+  <script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<header class="wd-nav">
+  <nav class="wd-bar" aria-label="Documentation">
+    <a class="wd-name" href="index.html">ProofBox docs</a>
+    <a class="wd-link" href="index.html">Overview</a>
+    <a class="wd-link" href="setup.html" aria-current="page">Setup</a>
+    <a class="wd-link" href="how-it-works.html">How it works</a>
+    <a class="wd-link" href="security.html">Security</a>
+    <a class="wd-link" href="api.html">API</a>
+    <a class="wd-link" href="demo.html">Demo script</a>
+    <a class="wd-link" href="diagrams.html">Diagrams</a>
+    <a class="wd-link" href="workmap.html">Work map</a>
+  </nav>
+</header>
+<main>
+  <header class="wd-hero">
+    <div class="wd-eyebrow">ProofBox</div>
+    <h1>Setup</h1>
+    <p class="wd-lead">Install, configure, run, test and verify ProofBox locally in mock mode.</p>
+  </header>
+
+  <p class="wd-note"><strong>Mock build.</strong> No container or VM runs, and the app makes no calls to Vultr or any other external service. Results such as "blocked", "OOM-killed" and "destroyed" come from software rules in <code>MockSandbox</code>; they are not evidence of real isolation.</p>
+
+  <!-- workdocs:begin id=prereq -->
+  <section id="prereq">
+    <h2>Prerequisites</h2>
+    <ul>
+      <li><strong>Node.js and npm.</strong> No version is pinned: <code>package.json</code> has no <code>engines</code> field and there is no <code>.nvmrc</code>. The scripts use <code>node --import tsx</code> and <code>--disable-warning</code>, which need a recent Node; the checks for these pages ran on Node v24.18.0.</li>
+      <li><strong>Dependencies</strong> (ranges from <code>package.json</code>, exact versions in the committed <code>package-lock.json</code>): <code>next ^16.4.5</code>, <code>react ^19.3.1</code>, <code>react-dom ^19.3.1</code>; dev: <code>typescript ^5.9</code>, <code>tsx ^4.23.15</code>, <code>tailwindcss ^4.3.4</code>, <code>@tailwindcss/postcss ^4.3.4</code>, <code>@types/node ^22</code>.</li>
+      <li><strong>Accounts and services:</strong> none in mock mode. The Vultr variables in <code>.env.example</code> are for a later phase, and the providers that would use them are stubs.</li>
+      <li>Optional: <code>python3</code> to serve these docs, <code>curl</code> for the API examples, a Chromium-based browser for in-browser Ed25519 verification.</li>
+    </ul>
+    <p class="wd-source">Source: <code>package.json</code>, <code>.env.example</code>, <code>README.md</code></p>
+  </section>
+  <!-- workdocs:end id=prereq -->
+
+  <!-- workdocs:begin id=install -->
+  <section id="install">
+    <h2>Install</h2>
+<pre><code>npm install</code></pre>
+    <p>A <code>package-lock.json</code> is committed, so <code>npm ci</code> also gives a clean, locked install.</p>
+    <p class="wd-source">Source: <code>README.md</code> "Quick start", <code>package-lock.json</code></p>
+  </section>
+  <!-- workdocs:end id=install -->
+
+  <!-- workdocs:begin id=config -->
+  <section id="config">
+    <h2>Configuration</h2>
+    <p>No configuration file is required for local use; local mock mode is the default. To change a setting, export the variable in the shell or copy <code>.env.example</code> to <code>.env.local</code> (Next.js reads it). Never commit real keys. Names and defaults come from <code>src/lib/config.ts</code>, <code>src/lib/access.ts</code> and <code>src/lib/sandbox/signing.ts</code>; integer variables fall back to the default when unset, not a number, or not positive.</p>
+    <h3>Exposure and access</h3>
+    <div class="wd-table"><table>
+      <thead><tr><th>Variable</th><th>Purpose</th><th>Default in code</th><th>Needed?</th></tr></thead>
+      <tbody>
+        <tr><td><code>PROOFBOX_PUBLIC</code></td><td><code>1</code> = public mode: any <code>Host</code> accepted, <code>Secure</code> cookies, and the server <strong>refuses to start</strong> without <code>PROOFBOX_DEMO_TOKEN</code> and <code>RECEIPT_SIGNING_KEY</code>. Unset/<code>0</code> = local mode: the API answers only loopback <code>Host</code> headers (403 otherwise). Any other value is a config error</td><td>local</td><td><code>1</code> on anything reachable from outside</td></tr>
+        <tr><td><code>PROOFBOX_DEMO_TOKEN</code></td><td>Access token, at least 16 characters. When set, <code>POST /api/session</code> needs header <code>x-proofbox-token</code>; every other API call then needs the session cookie it sets. Not an identity: each session is its own principal</td><td>unset (sessions are free in local mode)</td><td>required in public mode</td></tr>
+        <tr><td><code>PROOFBOX_SESSION_SECRET</code></td><td>HMAC key for session cookies, at least 32 characters</td><td>random per process (sessions end on restart)</td><td>no</td></tr>
+        <tr><td><code>PROOFBOX_TRUST_PROXY</code></td><td>Number of reverse proxies (1-5) whose <code>x-forwarded-for</code> entries are trusted; the client IP is read that many places from the right and used for extra per-IP limits</td><td><code>0</code>: proxy headers are never read</td><td>only behind a proxy that appends <code>x-forwarded-for</code></td></tr>
+        <tr><td><code>RECEIPT_SIGNING_KEY</code></td><td>Base64 PKCS#8 DER Ed25519 private key, checked at start (a bad key stops the server). Keep one stable key per deployment so receipts verify after restarts</td><td>unset = new ephemeral key at each process start</td><td>required in public mode</td></tr>
+        <tr><td><code>SESSION_TTL_MS</code>, <code>SESSIONS_PER_MINUTE</code>, <code>SESSIONS_PER_IP_PER_MINUTE</code></td><td>Session lifetime; new sessions per minute (all callers; per IP when a proxy is trusted)</td><td><code>43200000</code> (12 h), <code>60</code>, <code>10</code></td><td>no</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Limits</h3>
+    <div class="wd-table"><table>
+      <thead><tr><th>Variable</th><th>Purpose</th><th>Default in code</th></tr></thead>
+      <tbody>
+        <tr><td><code>MOCK</code></td><td>Only the exact value <code>0</code> selects the Vultr providers (stubs)</td><td>mock on</td></tr>
+        <tr><td><code>SANDBOX_TIMEOUT_MS</code>, <code>SANDBOX_MEMORY_MB</code></td><td>Per-step time and memory caps (hard ceilings 30000 ms, 1024 MiB)</td><td><code>5000</code>, <code>256</code></td></tr>
+        <tr><td><code>SANDBOX_EGRESS_ALLOWLIST</code></td><td>Comma-separated hosts the sandboxed browser may reach; planner and clients cannot add hosts</td><td><code>shop.example.com,example.com,docs.example.com</code></td></tr>
+        <tr><td><code>SANDBOX_MAX_CONCURRENT</code>, <code>SANDBOX_SLOTS_PER_PRINCIPAL</code></td><td>Sandboxes alive at once, in total and per session principal</td><td><code>3</code>, <code>2</code></td></tr>
+        <tr><td><code>SANDBOX_MAX_QUEUED</code>, <code>SANDBOX_QUEUE_PER_PRINCIPAL</code></td><td>Callers waiting for a slot, in total and per principal; beyond that → 429</td><td><code>12</code>, <code>4</code></td></tr>
+        <tr><td><code>SANDBOX_EXEC_WAIT_MS</code>, <code>SANDBOX_RUN_WAIT_MS</code></td><td>How long an ad-hoc exec / a run step waits for a slot (served round-robin by principal)</td><td><code>5000</code>, <code>120000</code></td></tr>
+        <tr><td><code>SANDBOX_EXEC_PER_MINUTE</code></td><td>Ad-hoc <code>/api/sandbox/exec</code> calls per principal (and per IP with a trusted proxy) per minute</td><td><code>20</code></td></tr>
+        <tr><td><code>CHAT_PER_MINUTE</code>, <code>RUNS_PER_MINUTE</code></td><td>Plans and dispatches per principal per minute</td><td><code>20</code>, <code>10</code></td></tr>
+        <tr><td><code>RUNS_ACTIVE_PER_PRINCIPAL</code>, <code>RUNS_ACTIVE_MAX</code></td><td>Runs running or waiting for a human per principal; runs running in total</td><td><code>2</code>, <code>8</code></td></tr>
+        <tr><td><code>CONFIRM_TTL_MS</code></td><td>An unanswered human gate is denied after this long</td><td><code>600000</code> (10 min)</td></tr>
+        <tr><td><code>VULTR_INFERENCE_BASE_URL</code>, <code>VULTR_INFERENCE_MODEL</code>, <code>VULTR_INFERENCE_API_KEY</code>, <code>VULTR_SANDBOX_HOST</code>, <code>VULTR_SANDBOX_TOKEN</code>, <code>VULTR_API_KEY</code></td><td>Vultr phase only; the stubs make no network calls</td><td>base URL <code>https://api.vultrinference.com/v1</code>; others empty</td></tr>
+      </tbody>
+    </table></div>
+    <p>All limits, sessions and runs live in memory in one process; run a single instance. <code>.env.example</code> contains a one-line command that generates a signing key. Keep generated keys and tokens out of the repository and out of screenshots.</p>
+    <p class="wd-source">Source: <code>src/lib/config.ts</code>, <code>src/lib/access.ts</code>, <code>src/lib/sandbox/signing.ts</code>, <code>src/lib/sandbox/vultr-sandbox.ts</code>, <code>.env.example</code> (names only)</p>
+  </section>
+  <!-- workdocs:end id=config -->
+
+  <!-- workdocs:begin id=run -->
+  <section id="run">
+    <h2>Run</h2>
+<pre><code>npm run dev                  # development server (next dev)
+npm run build &amp;&amp; npm start    # production build, then next start</code></pre>
+    <p>Next.js serves on port 3000 by default, as the README states (<code>http://localhost:3000</code>); the project does not set another port. If 3000 is taken, pass a port and use that URL everywhere, for example <code>npx next start -p 3117 -H 127.0.0.1</code>. The checks for these pages used a fresh production build with <code>next start -p 3167 -H 127.0.0.1</code> (local mode) and <code>PROOFBOX_PUBLIC=1 … next start -p 3168</code> (public mode with a throwaway token and key). In local mode keep the server bound to 127.0.0.1.</p>
+    <p class="wd-source">Source: <code>package.json</code> scripts, <code>README.md</code> "Quick start"</p>
+  </section>
+  <!-- workdocs:end id=run -->
+
+  <!-- workdocs:begin id=test -->
+  <section id="test">
+    <h2>Test</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Command</th><th>What it does</th><th>Needs a server?</th><th>Result on 2026-11-07</th></tr></thead>
+      <tbody>
+        <tr><td><code>npm run typecheck</code></td><td><code>tsc --noEmit</code></td><td>no</td><td>clean</td></tr>
+        <tr><td><code>npm test</code></td><td>Unit tests in <code>tests/*.test.ts</code>: confinement (47), hardening (44: address ranges, arithmetic, stderr label, <code>x-forwarded-for</code>, verify-receipt exit codes), access model (26: sessions, Host/Origin, config refusal, signing key, slot pool, ownership)</td><td>no</td><td>117/117 pass</td></tr>
+        <tr><td><code>npm run build</code></td><td>Production build</td><td>no</td><td>OK, no warnings</td></tr>
+        <tr><td><code>npm run smoke -- &lt;app URL&gt;</code></td><td>E2E in one session: the three presets, policy, ad-hoc exec (<code>scripts/smoke.mjs</code>; default URL <code>http://localhost:3000</code>; set <code>PROOFBOX_DEMO_TOKEN</code> in its environment when the server needs a token)</td><td>yes</td><td>29/29 pass, token unset and set</td></tr>
+        <tr><td><code>npm run verify-receipt -- receipt.json --base &lt;app URL&gt;</code> or <code>--key &lt;base64 spki&gt; [--key-id &lt;id&gt;]</code></td><td>Offline sha256 + Ed25519 check. No default key source. Exit 0 valid, 1 invalid, 2 usage, 3 key unavailable</td><td>only with <code>--base</code></td><td>valid 0, tampered 1, unreachable base 3, malformed key 3</td></tr>
+        <tr><td><code>node --import tsx tests/server-policy.probe.mjs &lt;app URL&gt;</code></td><td>Black-box policy probe (writes to <code>PB_OUT</code>, default <code>/tmp/pb-test</code>)</td><td>yes</td><td>82/82 pass, token unset and set</td></tr>
+        <tr><td><code>node --import tsx tests/adversarial.probe.mjs &lt;app URL&gt;</code></td><td>Two principals (list, read, confirm, dispatch), confirm replay and concurrency, queue flood fairness and cleanup, XFF spoofing, receipt exit codes</td><td>yes</td><td>30/30 pass without a token, 32/32 with one (3 extra token checks)</td></tr>
+        <tr><td><code>node tests/config.probe.mjs [projectDir] [port]</code></td><td>Starts and stops its own <code>next start</code> (needs a build; default port 3168): public mode without token/key refuses to start, bad key refuses, stable key keeps its keyId, Host guard, cookie flags</td><td>starts its own</td><td>17/17 pass</td></tr>
+      </tbody>
+    </table></div>
+    <p>These results prove the control plane in mock mode, not real isolation. The probes are bounded (a few dozen mock requests) and stop only the processes they start.</p>
+    <p class="wd-source">Source: <code>package.json</code> scripts, <code>scripts/smoke.mjs</code>, <code>scripts/verify-receipt.mjs</code>, <code>tests/</code></p>
+  </section>
+  <!-- workdocs:end id=test -->
+
+  <!-- workdocs:begin id=verify -->
+  <section id="verify">
+    <h2>Verify the install</h2>
+    <ol>
+      <li>Open the app URL (on 127.0.0.1 or localhost in local mode). The header shows <code>MOCK MODE · no Vultr calls</code> and, on a wide screen, <code>session: pr_…</code>.</li>
+      <li><code>curl -s &lt;app URL&gt;/api/status</code> returns <code>"mode":"mock"</code>, <code>"limits":{"timeoutMs":5000,"memoryMb":256}</code>, the egress allowlist, <code>"sandboxes":{"active":0,"queued":0,"max":3,…}</code> and <code>"access":{"exposure":"local","tokenRequired":false,…}</code>.</li>
+      <li>Click the preset <strong>Prove-It Python</strong>, then <strong>Dispatch to sandbox →</strong>. The chat ends with "Run succeeded: 3/3 steps succeeded" and the receipt badge reads <code>CONTAINED (SIMULATED)</code>.</li>
+      <li>In a receipt, click <strong>verify</strong>: "✓ sha256 recomputed in your browser · ✓ Ed25519 signature valid" appears.</li>
+      <li>The server log shows one line <code>[proofbox] exposure=local token=unset trustProxyHops=0 receiptKey=…</code>.</li>
+    </ol>
+    <p>All five were observed in Chromium and in the server log on 2026-11-07. With a token, the app first shows "This server needs an access token" and a <strong>Start session</strong> button.</p>
+    <p class="wd-source">Source: <code>src/app/api/status/route.ts</code>, <code>src/lib/startup.ts</code>, <code>src/components/ProofBoxApp.tsx</code>, <code>src/components/ReceiptViewer.tsx</code>, <code>src/components/IsolationBadge.tsx</code></p>
+  </section>
+  <!-- workdocs:end id=verify -->
+
+  <!-- workdocs:begin id=trouble -->
+  <section id="trouble">
+    <h2>Troubleshooting</h2>
+    <div class="wd-table"><table>
+      <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Server exits at once with <code>[proofbox] refusing to start:</code> and a list</td><td>Invalid security config: <code>PROOFBOX_PUBLIC=1</code> without token or signing key, a malformed or non-Ed25519 <code>RECEIPT_SIGNING_KEY</code>, a token under 16 characters, a bad <code>PROOFBOX_TRUST_PROXY</code></td><td>Fix the variables named in the list (the message never shows values)</td></tr>
+        <tr><td><code>403 local mode only answers loopback hosts</code></td><td>Local mode and the page was opened through a LAN IP, a domain or a proxy</td><td>Open it on <code>http://127.0.0.1:&lt;port&gt;</code> or <code>localhost</code>, or deploy with <code>PROOFBOX_PUBLIC=1</code> plus token and key</td></tr>
+        <tr><td><code>401 no valid session — POST /api/session first</code></td><td>Scripts and curl must start a session and send its cookie</td><td><code>curl -c jar -b jar -X POST &lt;URL&gt;/api/session</code> once, then add <code>-b jar</code> to every call (see <a href="api.html#try">API → Try it</a>)</td></tr>
+        <tr><td><code>401 missing or wrong x-proofbox-token</code></td><td><code>PROOFBOX_DEMO_TOKEN</code> is set on the server</td><td>Send <code>x-proofbox-token</code> on <code>POST /api/session</code>; for the smoke and probe scripts, set <code>PROOFBOX_DEMO_TOKEN</code> in their environment (never paste it into docs)</td></tr>
+        <tr><td><code>409 plan already dispatched</code></td><td>Plans are single-use</td><td>Ask the planner again (<code>POST /api/chat</code>); the UI's <strong>Run again</strong> does this for you</td></tr>
+        <tr><td><code>429</code> from chat, runs or exec</td><td>Per-session rate limit, too many active runs, or no sandbox slot within the wait time</td><td>Wait for the time in the message, or raise the limits for local testing</td></tr>
+        <tr><td><code>verify-receipt</code> exits 2 or 3</td><td>2: no file or no key source (there is no default <code>--base</code>); 3: the key could not be fetched or parsed — the receipt was not judged</td><td>Pass <code>--base &lt;app URL&gt;</code> or a pinned <code>--key</code>; set <code>RECEIPT_SIGNING_KEY</code> so the key survives restarts</td></tr>
+        <tr><td>Port 3000 in use, or the URL shows a different service</td><td>Another process listens on 3000</td><td>Start on another port (<code>-p 3117</code>) and use that URL for the browser, smoke and verify commands</td></tr>
+        <tr><td>Errors naming <code>VultrSandbox</code> or <code>VultrInferenceLlm</code></td><td><code>MOCK=0</code> was set; the Vultr providers are stubs</td><td>Unset <code>MOCK</code> or set it to <code>1</code></td></tr>
+        <tr><td>Smoke test cannot connect</td><td><code>npm run smoke</code> needs a running server</td><td>Start the app first and pass its URL</td></tr>
+        <tr><td>Free-form code prints <code>&lt;mock: not evaluated: …&gt;</code></td><td><code>MockSandbox</code> does not execute code; its print emulator only evaluates exact integer arithmetic</td><td>Use the presets in mock mode</td></tr>
+      </tbody>
+    </table></div>
+    <p class="wd-source">Source: <code>src/lib/startup.ts</code>, <code>src/lib/access.ts</code>, <code>src/lib/orchestrator.ts</code>, <code>scripts/verify-receipt.mjs</code>, <code>src/app/api/*</code>, <code>src/lib/sandbox/vultr-sandbox.ts</code>, <code>src/lib/sandbox/py-arith.ts</code></p>
+  </section>
+  <!-- workdocs:end id=trouble -->
+
+  <footer class="wd-foot">Written from the code on 2026-11-07, updated the same day after the security fixes (the project has no git history); sources: package.json, package-lock.json, .env.example, src/lib/config.ts, src/lib/sandbox/signing.ts, scripts/*.mjs, tests/, README.md. Static page: re-run workdocs after the code changes.</footer>
+</main>
+<!-- Optional, presentation only. The page is complete without it. -->
+<script src="assets/workdocs.js" defer></script>
+</body>
+</html>

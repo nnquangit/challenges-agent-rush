@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "8c438e73-7b75-42ff-9c9a-7947dc0201be",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/workflow-policy-20261107-163430/candidate.json",
+  "output": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/workflow-policy-20261107-163430/workflow-policy.html",
+  "specification": {
+    "sha256": "d85e35c2e8c4ea58568846ea34fcf4db1ee1d3427f805e5de352b51d42e572ca",
+    "bytes": 5645
+  },
+  "artifact": {
+    "sha256": "6e762074770543512a64aedee5836e0093e309c15ca93f9736660b47e08b663f",
+    "bytes": 760736
+  }
+}

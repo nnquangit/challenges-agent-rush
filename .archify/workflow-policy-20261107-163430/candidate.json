@@ -1,0 +1,245 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "ProofBox control-plane policy: the server, not the model, sets the rules",
+    "output": ".archify/workflow-policy-20261107-163430/workflow-policy.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1060,
+      666
+    ]
+  },
+  "lanes": [
+    {
+      "id": "planner",
+      "label": "Planner (MockLlm, simulated)"
+    },
+    {
+      "id": "policy",
+      "label": "enforcePolicy() in POST /api/chat"
+    },
+    {
+      "id": "stop",
+      "label": "Rejected or refused",
+      "variant": "exception"
+    },
+    {
+      "id": "runtime",
+      "label": "Run time, checked again"
+    }
+  ],
+  "groups": [
+    {
+      "id": "plan_time",
+      "label": "src/lib/policy.ts",
+      "lane": "policy",
+      "fromCol": 0,
+      "toCol": 3,
+      "variant": "security"
+    },
+    {
+      "id": "run_time",
+      "label": "defense in depth",
+      "lane": "runtime",
+      "fromCol": 3,
+      "toCol": 5,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": [
+    "llm",
+    "validate",
+    "rewrite",
+    "probes",
+    "egress",
+    "runs",
+    "recheck",
+    "clamp"
+  ],
+  "nodes": [
+    {
+      "id": "llm",
+      "lane": "planner",
+      "col": 0,
+      "type": "external",
+      "label": "Plan JSON",
+      "sublabel": "getLlm().plan()",
+      "width": 132
+    },
+    {
+      "id": "validate",
+      "lane": "policy",
+      "col": 0,
+      "type": "security",
+      "label": "validatePlan()",
+      "sublabel": "≤ 8 steps, http(s) URLs",
+      "width": 132
+    },
+    {
+      "id": "rewrite",
+      "lane": "policy",
+      "col": 1,
+      "type": "security",
+      "label": "Rewrite steps",
+      "sublabel": "clear probe flags",
+      "tag": "submit → confirm",
+      "width": 132
+    },
+    {
+      "id": "probes",
+      "lane": "policy",
+      "col": 2,
+      "type": "security",
+      "label": "Insert probes",
+      "sublabel": "before first gate",
+      "tag": "addedBy: policy",
+      "width": 132
+    },
+    {
+      "id": "egress",
+      "lane": "policy",
+      "col": 3,
+      "type": "security",
+      "label": "Egress allowlist",
+      "sublabel": "typed hosts ∩ server",
+      "width": 132
+    },
+    {
+      "id": "reject",
+      "lane": "stop",
+      "col": 0,
+      "type": "security",
+      "label": "PlanRejected",
+      "sublabel": "502, nothing runs",
+      "width": 132
+    },
+    {
+      "id": "refused",
+      "lane": "stop",
+      "col": 4,
+      "type": "security",
+      "label": "egressRefused",
+      "sublabel": "named in the reply",
+      "width": 132
+    },
+    {
+      "id": "runs",
+      "lane": "runtime",
+      "col": 3,
+      "type": "backend",
+      "label": "POST /api/runs",
+      "sublabel": "stored planId only",
+      "width": 132
+    },
+    {
+      "id": "recheck",
+      "lane": "runtime",
+      "col": 4,
+      "type": "backend",
+      "label": "advance()",
+      "sublabel": "submit needs confirm",
+      "width": 132
+    },
+    {
+      "id": "clamp",
+      "lane": "runtime",
+      "col": 5,
+      "type": "security",
+      "label": "runInSandbox()",
+      "sublabel": "egress ∩ server again",
+      "width": 132
+    }
+  ],
+  "edges": [
+    {
+      "id": "plan-in",
+      "from": "llm",
+      "to": "validate",
+      "label": "raw plan",
+      "variant": "default"
+    },
+    {
+      "id": "valid",
+      "from": "validate",
+      "to": "rewrite",
+      "variant": "emphasis"
+    },
+    {
+      "id": "rewritten",
+      "from": "rewrite",
+      "to": "probes",
+      "variant": "emphasis"
+    },
+    {
+      "id": "probed",
+      "from": "probes",
+      "to": "egress",
+      "variant": "emphasis"
+    },
+    {
+      "id": "invalid",
+      "from": "validate",
+      "to": "reject",
+      "label": "invalid",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "not-allowed",
+      "from": "egress",
+      "to": "refused",
+      "label": "not on server list",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "saved",
+      "from": "egress",
+      "to": "runs",
+      "label": "savePlan()",
+      "variant": "emphasis"
+    },
+    {
+      "id": "dispatch",
+      "from": "runs",
+      "to": "recheck",
+      "variant": "emphasis"
+    },
+    {
+      "id": "execute",
+      "from": "recheck",
+      "to": "clamp",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Plan time (src/lib/policy.ts)",
+      "items": [
+        "validatePlan(): intent, ≤ 8 steps, code ≤ 20000 chars, browser URLs must be http(s); otherwise PlanRejected and POST /api/chat answers 502",
+        "Probe flags set by the planner are cleared; the server appends its own containment, memory, exfiltration or metadata probes before the first gated step",
+        "Every browser submit gets requiresConfirm; the egress allowlist is only hosts the user typed that are also on SANDBOX_EGRESS_ALLOWLIST"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Run time (checked again)",
+      "items": [
+        "POST /api/runs accepts a stored planId, never steps from the client",
+        "advance() pauses any browser submit even if the flag is missing (src/lib/orchestrator.ts)",
+        "runInSandbox() filters egress against the server list again (src/lib/sandbox/index.ts)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Simulated and still open",
+      "items": [
+        "Egress, metadata and Docker blocks are enforced by MockSandbox rules, not by a kernel or network",
+        "POST /api/chat and POST /api/runs have no token or rate limit yet (see Security, known gaps)"
+      ]
+    }
+  ]
+}

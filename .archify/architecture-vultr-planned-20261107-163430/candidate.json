@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ProofBox on Vultr: PLANNED target, not deployed (all Vultr code is a stub)",
+    "output": ".archify/architecture-vultr-planned-20261107-163430/architecture-vultr-planned.html",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "Browser",
+      "sublabel": "user or judge",
+      "pos": [
+        30,
+        210
+      ],
+      "size": [
+        120,
+        58
+      ]
+    },
+    {
+      "id": "web",
+      "type": "backend",
+      "label": "Next.js app + API",
+      "sublabel": "policy, orchestrator, receipts",
+      "tag": "MOCK=0",
+      "pos": [
+        220,
+        210
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "runner",
+      "type": "security",
+      "label": "Sandbox runner",
+      "sublabel": "VultrSandbox target",
+      "tag": "planned",
+      "pos": [
+        550,
+        210
+      ],
+      "size": [
+        150,
+        58
+      ]
+    },
+    {
+      "id": "container",
+      "type": "security",
+      "label": "Step container",
+      "sublabel": "Docker + gVisor runsc",
+      "tag": "one per step",
+      "pos": [
+        800,
+        210
+      ],
+      "size": [
+        160,
+        58
+      ]
+    },
+    {
+      "id": "egress",
+      "type": "security",
+      "label": "Egress proxy",
+      "sublabel": "allowlisted hosts only",
+      "tag": "browser steps",
+      "pos": [
+        800,
+        400
+      ],
+      "size": [
+        160,
+        58
+      ]
+    },
+    {
+      "id": "site",
+      "type": "external",
+      "label": "Allowlisted site",
+      "sublabel": "SANDBOX_EGRESS_ALLOWLIST",
+      "pos": [
+        800,
+        580
+      ],
+      "size": [
+        160,
+        58
+      ]
+    },
+    {
+      "id": "inference",
+      "type": "cloud",
+      "label": "Serverless Inference",
+      "sublabel": "OpenAI-compatible /v1",
+      "tag": "planned",
+      "pos": [
+        215,
+        420
+      ],
+      "size": [
+        180,
+        58
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Vultr Cloud Compute VM (planned, not deployed)",
+      "wraps": [
+        "web",
+        "runner",
+        "container",
+        "egress"
+      ],
+      "pad": 26
+    },
+    {
+      "kind": "security-group",
+      "label": "per-step sandbox: --network none, read-only rootfs, cap-drop ALL",
+      "wraps": [
+        "container"
+      ],
+      "pad": 14
+    },
+    {
+      "kind": "region",
+      "label": "Vultr Serverless Inference (planned)",
+      "wraps": [
+        "inference"
+      ],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "from": "user",
+      "to": "web",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "runner",
+      "label": "create / exec / destroy",
+      "variant": "security"
+    },
+    {
+      "from": "runner",
+      "to": "container",
+      "label": "docker run",
+      "variant": "security"
+    },
+    {
+      "from": "container",
+      "to": "egress",
+      "label": "proxy only",
+      "variant": "dashed"
+    },
+    {
+      "from": "egress",
+      "to": "site",
+      "label": "allowed host",
+      "variant": "dashed"
+    },
+    {
+      "from": "web",
+      "to": "inference",
+      "label": "plan / repair / explain / verify",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Status: planned, not built",
+      "items": [
+        "VultrSandbox.create() and every VultrInferenceLlm method throw today (src/lib/sandbox/vultr-sandbox.ts, src/lib/llm/vultr-inference-llm.ts)",
+        "No Vultr account is connected and the app makes no Vultr calls (README, Vultr services used)"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Intended sandbox contract",
+      "items": [
+        "create → POST {VULTR_SANDBOX_HOST}/sandboxes; exec → /sandboxes/:id/exec; destroy → DELETE (container removed)",
+        "--memory, --pids-limit, non-root user, tmpfs /sandbox; same SandboxProvider interface as MockSandbox"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "What carries over unchanged",
+      "items": [
+        "Policy, human gate, redaction and receipt signing are provider-independent code",
+        "Switching is getSandboxProvider() / getLlm() with MOCK=0; UI and API stay the same"
+      ]
+    }
+  ]
+}

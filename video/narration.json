@@ -1,0 +1,46 @@
+{
+  "voice": "af_heart",
+  "speed": 1.0,
+  "scenes": [
+    {
+      "id": "title",
+      "text": "This is ProofBox, a containment-first control plane for AI agents. Built for Vulture Agent Rush, challenge one: Blast Radius Zero."
+    },
+    {
+      "id": "problem",
+      "text": "Agents now run code and drive browsers. One bad step can read your API keys, hit the cloud metadata endpoint, or submit a form you never approved. You need to contain every step, and prove that you did."
+    },
+    {
+      "id": "approach",
+      "text": "ProofBox puts a control plane between the model and the machine. The server validates every plan, adds its own containment probes, and puts a human gate on anything with side effects. Each step runs in a fresh sandbox that is destroyed afterwards, and comes back with a signed receipt."
+    },
+    {
+      "id": "mock",
+      "text": "One note before the demo. This build runs in mock mode. The sandbox is simulated, and the app says so on every receipt. The policy rules and the receipt signatures are real code."
+    },
+    {
+      "id": "prove",
+      "text": "Prove-It Python. The claim: the sum of primes below one hundred is one thousand and sixty. The planner writes the step, the server dispatches it, and the receipt comes back hashed and signed with E D two five five one nine. I can verify it right here in the browser."
+    },
+    {
+      "id": "contain",
+      "text": "Now the containment moment. The server, not the model, added this probe. It tries to read the API key, the host disk, cloud metadata, and the Docker socket. All blocked, and the secret shows up redacted. A two gigabyte allocation is killed at the memory cap."
+    },
+    {
+      "id": "csv",
+      "text": "CSV Analyst. The agent guesses the wrong column, sees the key error, fixes it, and retries in a brand new sandbox. Trying to post the data to an outside host is blocked by the egress policy."
+    },
+    {
+      "id": "gate",
+      "text": "Research with Receipts. The browser may only reach hosts I typed that are also on the server allowlist. Before the form is submitted, ProofBox stops and asks me. I deny, and the submit never runs. I run it again and approve, and the receipt records the decision."
+    },
+    {
+      "id": "status",
+      "text": "What is real today: plan validation, server-inserted probes, the human gate, the egress allowlist, secret redaction, and signed receipts anyone can verify offline. What comes next: Vulture Serverless Inference for the model calls, and Docker with G Visor on a Vulture VM for the sandbox."
+    },
+    {
+      "id": "outro",
+      "text": "ProofBox. Blast radius zero, with receipts."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "84050e73-8dec-41c1-adb1-6eb93d18b062",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/lifecycle-run-step-20261107-163430/candidate.json",
+  "output": "/Users/nnquangit/projects/private/challenges/agent-rush/.archify/lifecycle-run-step-20261107-163430/lifecycle-run-step.html",
+  "specification": {
+    "sha256": "4137c5c7c96880c07fe127a658eaabc777e97ceb96b1f9e28279bd9f92cbc8d2",
+    "bytes": 3428
+  },
+  "artifact": {
+    "sha256": "1742a7538e3d478fda55b822ebc82b63090f36cc9bf1fe208ab66ae6243561ef",
+    "bytes": 761104
+  }
+}

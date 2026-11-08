@@ -1,0 +1,366 @@
+<!doctype html>
+<!-- workmap page template. Installed into your project by the workmap skill; edit it freely there
+     (see the skill's LICENSE.txt, "Installed files"). scripts/workmap.py fills the placeholders. -->
+<html lang="__WORKMAP_LANG__">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work map · __WORKMAP_TITLE__</title>
+<meta name="description" content="Work map of __WORKMAP_TITLE__: Epic → Feature → Task → Subtask with overall progress and the status of every item.">
+<style>
+/* Page base - the map page is self-contained and needs no other stylesheet. The tokens are the same as the free
+   workdocs pages use, so both look alike when installed together. Re-brand by changing the variables here. */
+:root { --bg: #f4f6f2; --surface: #ffffff; --surface-2: #e9ede6; --border: #d5dbd2; --text: #1c2426; --muted: #5d6a6a;
+  --accent: #0f6e63; --accent-ink: #ffffff; --node: #ffffff; --node-stroke: #c3cdc4; --code-bg: #e9ede6;
+  --font: "Be Vietnam Pro", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;   /* the first name is used only when that font is installed locally */
+  color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #121716; --surface: #1a2120; --surface-2: #222b29; --border: #2e3a37;
+  --text: #e6ebe8; --muted: #97a5a0; --accent: #4cc2b1; --accent-ink: #0d1a18; --node: #1e2726; --node-stroke: #3a4844; --code-bg: #1f2927; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #121716; --surface: #1a2120; --surface-2: #222b29; --border: #2e3a37;
+  --text: #e6ebe8; --muted: #97a5a0; --accent: #4cc2b1; --accent-ink: #0d1a18; --node: #1e2726; --node-stroke: #3a4844; --code-bg: #1f2927; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--font); font-variant-numeric: tabular-nums; }
+a { color: var(--accent); text-underline-offset: 2px; }
+code { background: var(--code-bg); padding: 1px 6px; border-radius: 6px; font-size: .9em; }
+/* Navigation back to the documentation: written by scripts/workmap.py only when docs/index.html exists */
+.topnav { position: sticky; top: 0; z-index: 5; background: var(--bg); background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+.topnav .in { max-width: 1120px; margin: 0 auto; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.topnav .brand { font-weight: 700; margin-right: 8px; text-decoration: none; color: var(--text); }
+.topnav a.p { text-decoration: none; padding: 5px 11px; border-radius: 999px; color: var(--text); font-size: 13px; border: 1px solid transparent; }
+.topnav a.p:hover { border-color: var(--border); }
+.topnav a.p[aria-current="page"] { background: var(--accent); color: var(--accent-ink); }
+.topnav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.topnav .theme { margin-left: auto; font: inherit; font-size: 13px; line-height: 1.4; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
+.topnav .theme:hover { border-color: var(--accent); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 0 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.hero { padding: 36px 0 8px; }
+.eyebrow { color: var(--accent); font-weight: 600; font-size: 13px; }
+h1 { font-size: clamp(24px, 3.6vw, 36px); line-height: 1.2; margin: 6px 0 10px; letter-spacing: -.01em; text-wrap: balance; }
+.lead { color: var(--muted); max-width: 72ch; }
+@media (max-width: 640px) { .topnav { position: static; } }
+/* Status colours ("Balanced": blue / amber / red / green at medium saturation) are separate from the page accent so they read on both themes. */
+:root { --wm-ink: var(--text); --wm-muted: var(--muted); --wm-node: var(--node);
+  --wm-node-min: 200px;                        /* minimum chip width for Epics and Features: columns line up */
+  --wm-node-min-deep: 300px;                   /* fixed width for Tasks and Subtasks (long names are cut with an ellipsis; hover shows the full text) */
+  --wm-chip-base: #e9ecef; --wm-chip-2-base: #dde2e7;   /* node chips: cool light grey; each chip is tinted with its status colour (see .wm-node) */
+  --wm-tint: 14%; --wm-tint-hover: 24%;        /* how much status colour goes into a chip; 0% for plain grey chips */
+  --wm-line: #b9c1c9;                          /* connectors: one colour, thin */
+  --st-pending: #8a939e; --st-doing: #3b82c4; --st-pause: #d19a2a; --st-cancel: #cf5c5c; --st-done: #3aa36a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wm-chip-base: #111518; --wm-chip-2-base: #0a0d0f; --wm-line: #3a434b;
+  --st-pending: #8a95a1; --st-doing: #6aa6e6; --st-pause: #e3b14a; --st-cancel: #ec8484; --st-done: #5fcf90; } }
+:root[data-theme="dark"] { --wm-chip-base: #111518; --wm-chip-2-base: #0a0d0f; --wm-line: #3a434b;   /* node chips: deep black on the dark theme */
+  --st-pending: #8a95a1; --st-doing: #6aa6e6; --st-pause: #e3b14a; --st-cancel: #ec8484; --st-done: #5fcf90; }
+@property --wm-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+
+/* Overall progress: one bar, one number - read first, details after */
+.wm-sum { display: grid; grid-template-columns: 1fr auto; gap: 8px 18px; align-items: end; margin-top: 18px; }
+.wm-sum .pct { grid-row: 1 / span 2; font-size: clamp(28px, 4vw, 40px); font-weight: 700; line-height: 1; color: var(--wm-ink); }
+.wm-sum .pct small { display: block; font-size: 12.5px; font-weight: 500; color: var(--wm-muted); margin-top: 4px; }
+.wm-sum .bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.wm-sum .seg { min-width: 0; transition: flex-grow .4s ease; }
+.wm-sum .seg.done { background: var(--st-done); } .wm-sum .seg.doing { background: var(--st-doing); }
+.wm-sum .seg.pause { background: var(--st-pause); } .wm-sum .seg.cancel { background: var(--st-cancel); } .wm-sum .seg.pending { background: var(--st-pending); opacity: .45; }
+.wm-sum .nums { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--wm-muted); }
+.wm-sum .nums .it b { color: var(--wm-ink); font-weight: 600; }
+@media (max-width: 560px) { .wm-sum { grid-template-columns: 1fr; } .wm-sum .pct { grid-row: auto; } }
+
+.wm-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-top: 18px; }
+.wm-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 12.5px; color: var(--wm-muted); }
+.wm-bar .grp { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.it { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+.wm-bar button { font: inherit; font-size: 12.5px; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--wm-node); color: var(--wm-ink); cursor: pointer; }
+.wm-bar button:hover { border-color: var(--accent); }
+.wm-bar button:focus-visible, .wm-node:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.wm-stage { overflow: auto; max-height: 78vh; border-radius: 12px; }
+.wm-card:fullscreen { border: 0; border-radius: 0; background: var(--bg); overflow: auto;
+  padding: 18px max(16px, env(safe-area-inset-right, 0px)) 18px max(16px, env(safe-area-inset-left, 0px)); }
+.wm-card:fullscreen .wm-stage { max-height: none; }
+.wm-canvas { position: relative; }
+.wm-canvas svg.wm-links { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+
+/* Status icon: before the id badge on every node, and in the legend / totals */
+.ico { --st: var(--st-pending); width: 12px; height: 12px; flex: none; display: block; }
+.ico.st-doing { --st: var(--st-doing); } .ico.st-pause { --st: var(--st-pause); } .ico.st-cancel { --st: var(--st-cancel); } .ico.st-done { --st: var(--st-done); }
+.wm-node .ico { margin-right: -2px; }
+@media (prefers-reduced-motion: no-preference) { .ico.st-doing .ring { transform-origin: 8px 8px; animation: wm-spin 1.6s linear infinite; } @keyframes wm-spin { to { rotate: 360deg; } } }
+.wm-node.st-doing { --st: var(--st-doing); } .wm-node.st-pause { --st: var(--st-pause); }
+.wm-node.st-cancel { --st: var(--st-cancel); } .wm-node.st-done { --st: var(--st-done); }
+
+/* Node = chip tinted with its status colour, border in the status colour, status icon + id badge before the name */
+.wm-node { --st: var(--st-pending); --wm-chip: color-mix(in srgb, var(--st) var(--wm-tint), var(--wm-chip-base)); --wm-chip-2: color-mix(in srgb, var(--st) var(--wm-tint-hover), var(--wm-chip-base));
+  position: absolute; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font: inherit; color: var(--wm-ink);
+  min-width: var(--wm-node-min); background: var(--wm-chip); border: 1.5px solid var(--st); padding: 5px 12px 5px 7px; border-radius: 9px; cursor: default; text-align: left; line-height: 1.25; }
+.wm-node .txt { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.wm-node.has-kids { cursor: pointer; }
+.wm-node.has-kids:hover, .wm-node.has-kids:focus-visible { background: var(--wm-chip-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--st) 22%, transparent); }
+.wm-node.lvl-epic { font-size: 13.5px; font-weight: 600; padding: 6px 14px 6px 8px; }
+.wm-node.lvl-epic .wm-num { background: var(--wm-ink); color: var(--surface); }
+.wm-node.lvl-feature { font-size: 12.5px; font-weight: 500; }
+/* Tasks and Subtasks (same look): quiet rows, wider, a thin 1px border in the status colour */
+.wm-node.lvl-task, .wm-node.lvl-subtask { width: var(--wm-node-min-deep); min-width: 0; font-size: 11.5px; color: var(--wm-muted); background: var(--surface);
+  border: 1px solid var(--st); border-radius: 7px; padding: 6px 12px 6px 8px; }
+.wm-node.lvl-subtask { border-style: dashed; }   /* Subtasks: dashed thin border */
+/* Owner (agent or person): a small tag of its own, hung just below the node's right corner (outside the chip) */
+.wm-owner { position: absolute; padding: 1px 8px; font-size: 9.5px; font-weight: 600; line-height: 1.5; color: var(--wm-muted);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wm-node.lvl-task.has-kids:hover, .wm-node.lvl-subtask.has-kids:hover, .wm-node.lvl-task.has-kids:focus-visible, .wm-node.lvl-subtask.has-kids:focus-visible { box-shadow: none; }
+.wm-node.lvl-root { --st: var(--border); font-size: 15px; font-weight: 700; background: var(--wm-node); border-radius: 999px; padding: 8px 18px; justify-content: center; }
+.wm-node.st-cancel .txt { text-decoration: line-through; color: var(--wm-muted); }
+.wm-num { min-width: 20px; height: 18px; padding: 0 5px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--surface-2); color: var(--wm-ink); font-size: 10px; font-weight: 700; letter-spacing: .02em; flex: none; font-variant-numeric: tabular-nums; }
+.wm-count { font-size: 10.5px; font-weight: 500; color: var(--wm-muted); }
+.wm-more { font-size: 11px; font-weight: 600; color: var(--wm-muted); border: 1px dashed var(--border); border-radius: 999px; padding: 3px 10px; cursor: pointer; background: transparent; justify-content: center; }
+.wm-more:hover { border-color: var(--accent); color: var(--accent); }
+.wm-more.lvl-deep { border-radius: 7px; }   /* among Tasks / Subtasks: same rounded shape */
+@media (prefers-reduced-motion: no-preference) {
+  /* Epic / Feature in progress: a light runs around the border (conic gradient on the border box, angle animated). */
+  .wm-node.st-doing.lvl-epic, .wm-node.st-doing.lvl-feature { border-color: transparent;
+    background: linear-gradient(var(--wm-chip), var(--wm-chip)) padding-box,
+      conic-gradient(from var(--wm-a, 0deg), var(--st) 0 24%, color-mix(in srgb, var(--st) 32%, transparent) 24% 100%) border-box;
+    animation: wm-ring 2.4s linear infinite; }
+  .wm-node.st-doing.lvl-epic.has-kids:hover, .wm-node.st-doing.lvl-feature.has-kids:hover,
+  .wm-node.st-doing.lvl-epic.has-kids:focus-visible, .wm-node.st-doing.lvl-feature.has-kids:focus-visible {
+    background: linear-gradient(var(--wm-chip-2), var(--wm-chip-2)) padding-box,
+      conic-gradient(from var(--wm-a, 0deg), var(--st) 0 24%, color-mix(in srgb, var(--st) 32%, transparent) 24% 100%) border-box; }
+  /* Task / Subtask in progress: the same running light, on the thin border */
+  .wm-node.lvl-task.st-doing, .wm-node.lvl-subtask.st-doing { border-color: transparent;
+    background: linear-gradient(var(--surface), var(--surface)) padding-box,
+      conic-gradient(from var(--wm-a, 0deg), var(--st) 0 24%, color-mix(in srgb, var(--st) 32%, transparent) 24% 100%) border-box;
+    animation: wm-ring 2.4s linear infinite; }
+  .wm-node.lvl-task.st-doing.fresh, .wm-node.lvl-subtask.st-doing.fresh { animation: wm-ring 2.4s linear infinite, wm-in .25s ease-out; }
+  @keyframes wm-ring { to { --wm-a: 360deg; } }
+  @keyframes wm-in { from { translate: -8px 0; } }   /* slide only, no opacity: a paused animation (background tab) still shows the chip */
+  .wm-node.fresh { animation: wm-in .25s ease-out; }
+  .wm-node.st-doing.lvl-epic.fresh, .wm-node.st-doing.lvl-feature.fresh { animation: wm-ring 2.4s linear infinite, wm-in .25s ease-out; }
+}
+.wm-help { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.wm-help code { font-size: 12px; }
+</style>
+<script>try{var t=localStorage.getItem("docs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+__WORKMAP_NAV__<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow" id="wm-eyebrow"></div>
+    <h1>__WORKMAP_TITLE__</h1>
+    <p class="lead" id="wm-lead"></p>
+    <div class="wm-sum" id="wm-sum"></div>
+  </header>
+  <section class="wm-card" id="wm-card">
+    <div class="wm-bar">
+      <div class="grp" id="wm-legend"></div>
+      <div class="grp">
+        <button type="button" id="wm-open"></button>
+        <button type="button" id="wm-fold"></button>
+        <button type="button" id="wm-full"></button>
+        <button type="button" id="wm-theme">◐</button>
+      </div>
+    </div>
+    <div class="wm-stage"><div class="wm-canvas" id="wm-canvas"><svg class="wm-links" id="wm-links" aria-hidden="true"></svg></div></div>
+    <p class="wm-help" id="wm-help"></p>
+  </section>
+  <p class="wm-help" id="wm-help2"></p>
+</main>
+<script>
+(function () {
+  var DATA = /*__WORKMAP_DATA__*/null; // filled by python3 scripts/workmap.py
+  var MAX_SHOWN = 3;
+  var T = {
+    en: { title: "Work map", eyebrow: "Work map",
+      lead: "Everything the project is doing, on one map: Epic → Feature → Task → Subtask. Click a node to open its branch; hover to see the note and the last update. Struck-through items were cancelled.",
+      progress: "Overall progress", done_of: "{done} of {live} items done", cancelled: ", {n} cancelled", pct_done: "{pct}% done",
+      expand: "Expand all", collapse: "Collapse all", full: "Full screen", unfull: "Exit full screen", theme: "Toggle colour theme", more: "+{n} more", less: "Show fewer",
+      more_aria: "Show {n} more under {name}", less_aria: "Show only the first {n} under {name}",
+      help_keys: "Keyboard: Tab to a node, Enter or Space to open or close it. Each branch shows up to {n} children; the rest fold into +N.",
+      help_update: "Update with", help_then: "then", help_source: "source", legend: "Legend", map: "Work map",
+      st: { pending: "Pending", doing: "In progress", pause: "Paused", cancel: "Cancelled", done: "Done" },
+      lvl: { root: "", epic: "Epic", feature: "Feature", task: "Task", subtask: "Subtask" } },
+    vi: { title: "Bản đồ công việc", eyebrow: "Bản đồ công việc",
+      lead: "Mọi việc của dự án trên một bản đồ: Epic → Feature → Task → Subtask. Bấm vào nút để mở nhánh, rê chuột để xem ghi chú và ngày cập nhật. Gạch ngang là việc đã huỷ.",
+      progress: "Tiến độ tổng", done_of: "{done} / {live} việc xong", cancelled: ", {n} huỷ", pct_done: "{pct}% xong",
+      expand: "Mở hết", collapse: "Thu gọn", full: "Toàn màn hình", unfull: "Thoát toàn màn hình", theme: "Đổi giao diện sáng / tối", more: "+{n} nhánh", less: "Thu gọn",
+      more_aria: "Hiện thêm {n} nhánh của {name}", less_aria: "Chỉ hiện {n} nhánh đầu của {name}",
+      help_keys: "Bàn phím: Tab tới nút, Enter hoặc Space để mở/thu. Mỗi nhánh hiện tối đa {n} nhánh con, phần còn lại gom vào +N.",
+      help_update: "Cập nhật bằng", help_then: "rồi", help_source: "nguồn", legend: "Chú giải", map: "Bản đồ công việc",
+      st: { pending: "Chưa làm", doing: "Đang làm", pause: "Tạm dừng", cancel: "Huỷ", done: "Xong" },
+      lvl: { root: "", epic: "Epic", feature: "Feature", task: "Task", subtask: "Subtask" } }
+  };
+  var L = T[DATA && DATA.lang] || T.en;
+  function fmt(s, o) { return s.replace(/\{(\w+)\}/g, function (_, k) { return o[k]; }); }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  var ICONS = {
+    pending: '<svg class="ico st-pending" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" fill="none" stroke="var(--st)" stroke-width="1.5"/><path d="M8 4.8V8l2 1.3" fill="none" stroke="var(--st)" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    doing: '<svg class="ico st-doing" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" fill="none" stroke="var(--st)" stroke-opacity=".25" stroke-width="1.6"/><path class="ring" d="M8 1.6a6.4 6.4 0 0 1 6.4 6.4" fill="none" stroke="var(--st)" stroke-width="1.6" stroke-linecap="round"/><path d="M6.8 5.8l3.2 2.2-3.2 2.2z" fill="var(--st)"/></svg>',
+    pause: '<svg class="ico st-pause" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" fill="var(--st)" fill-opacity=".14" stroke="var(--st)" stroke-width="1.5"/><path d="M6.5 5.4v5.2M9.5 5.4v5.2" stroke="var(--st)" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    cancel: '<svg class="ico st-cancel" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" fill="var(--st)" fill-opacity=".12" stroke="var(--st)" stroke-width="1.5"/><path d="M5.9 5.9l4.2 4.2M10.1 5.9l-4.2 4.2" stroke="var(--st)" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    done: '<svg class="ico st-done" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" fill="var(--st)" fill-opacity=".14" stroke="var(--st)" stroke-width="1.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8" fill="none" stroke="var(--st)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  function sw(s) { return ICONS[s] || ""; }
+  var $ = function (id) { return document.getElementById(id); };
+  var canvas = $("wm-canvas"), links = $("wm-links");
+
+  // Static text in the chosen language
+  document.title = L.title + " · " + DATA.name;
+  $("wm-eyebrow").textContent = L.eyebrow; $("wm-lead").textContent = L.lead;
+  $("wm-sum").setAttribute("aria-label", L.progress); $("wm-card").setAttribute("aria-label", L.map); $("wm-legend").setAttribute("aria-label", L.legend);
+  $("wm-open").textContent = L.expand; $("wm-fold").textContent = L.collapse;
+  $("wm-help").textContent = fmt(L.help_keys, { n: MAX_SHOWN });
+  $("wm-help2").innerHTML = esc(L.help_update) + ' <code>python3 scripts/workmap.py add "&lt;Epic&gt;/&lt;Feature&gt;" "&lt;Work item&gt;" -s doing</code> ' +
+    esc(L.help_then) + ' <code>set &lt;id&gt; done</code>; ' + esc(L.help_source) + ' <code>docs/shared/workmap.md</code>.';
+
+  // Prepare the tree: ids, parents, depth.
+  var nodes = [], seq = 0;
+  (function prep(n, parent, depth) {
+    n.id = "n" + (seq++); n.parent = parent; n.depth = depth; n.kids = n.children || [];
+    n.open = depth < 1;          // start with Epics only; click to open a branch
+    n.showAll = false;           // false = at most MAX_SHOWN children
+    nodes.push(n);
+    n.kids.forEach(function (k) { prep(k, n, depth + 1); });
+  })(DATA, null, 0);
+
+  function countAll(n) { return n.kids.reduce(function (s, k) { return s + 1 + countAll(k); }, 0); }
+
+  // Overall progress: count leaf nodes (the real work; parents only aggregate)
+  (function summary() {
+    var c = { done: 0, doing: 0, pending: 0, pause: 0, cancel: 0 };
+    (function leaves(n) { if (!n.kids.length) { c[n.status] = (c[n.status] || 0) + 1; return; } n.kids.forEach(leaves); })(DATA);
+    var total = c.done + c.doing + c.pending + c.pause + c.cancel, live = total - c.cancel;
+    var pct = live ? Math.round(100 * c.done / live) : 0;
+    var order = ["done", "doing", "pause", "pending", "cancel"];
+    $("wm-sum").innerHTML =
+      '<div class="pct">' + pct + "%<small>" + esc(fmt(L.done_of, { done: c.done, live: live })) + (c.cancel ? esc(fmt(L.cancelled, { n: c.cancel })) : "") + "</small></div>" +
+      '<div class="bar" role="img" aria-label="' + esc(fmt(L.pct_done, { pct: pct })) + '">' + order.map(function (s) { return c[s] ? '<span class="seg ' + s + '" style="flex-grow:' + c[s] + '"></span>' : ""; }).join("") + "</div>" +
+      '<div class="nums">' + order.map(function (s) { return '<span class="it">' + sw(s) + "<b>" + c[s] + "</b> " + esc(L.st[s].toLowerCase()) + "</span>"; }).join("") + "</div>";
+  })();
+
+  // Legend
+  $("wm-legend").innerHTML = Object.keys(L.st).map(function (s) { return '<span class="it">' + sw(s) + esc(L.st[s]) + "</span>"; }).join("");
+
+  // Children currently visible under a node (plus the virtual "+N" / "fewer" button).
+  function visibleKids(n) {
+    if (!n.open || !n.kids.length) return [];
+    var shown = n.showAll ? n.kids.slice() : n.kids.slice(0, MAX_SHOWN);
+    if (n.kids.length > MAX_SHOWN) shown.push({ more: true, owner: n, id: n.id + "-more", depth: n.depth + 1, kids: [] });
+    return shown;
+  }
+
+  var els = {}, prevIds = {};
+  function render() {
+    var seen = {};
+    // 1) create or update an element for every visible node
+    (function walk(n) {
+      seen[n.id] = true;
+      var el = els[n.id];
+      if (!el) {
+        el = document.createElement(n.more ? "button" : (n.kids.length ? "button" : "div"));
+        if (el.tagName === "BUTTON") el.type = "button";
+        el.dataset.id = n.id; el.dataset.depth = n.depth; canvas.appendChild(el); els[n.id] = el;
+        if (prevIds.__init) el.classList.add("fresh");
+      }
+      var fresh = el.classList.contains("fresh") ? " fresh" : "";
+      if (n.more) {
+        var hidden = n.owner.kids.length - MAX_SHOWN;
+        el.className = "wm-node wm-more" + (n.depth >= 3 ? " lvl-deep" : "") + fresh;
+        el.innerHTML = '<span class="txt">' + esc(n.owner.showAll ? L.less : fmt(L.more, { n: hidden })) + "</span>";
+        el.setAttribute("aria-label", fmt(n.owner.showAll ? L.less_aria : L.more_aria, { n: n.owner.showAll ? MAX_SHOWN : hidden, name: n.owner.name }));
+      } else {
+        var lvl = n.level || "task";
+        el.className = "wm-node lvl-" + lvl + " st-" + n.status + (n.kids.length ? " has-kids" : "") + fresh;
+        var code = n.code || "";   // stable id assigned by scripts/workmap.py (1, P1, T1, B1)
+        var head = code ? (ICONS[n.status] || "") + '<span class="wm-num">' + esc(code) + "</span>" : "";
+        var count = n.kids.length && !n.open ? ' <span class="wm-count">' + countAll(n) + "</span>" : "";
+        el.innerHTML = head + '<span class="txt">' + esc(n.name) + "</span>" + count;
+        el.title = (L.lvl[lvl] ? L.lvl[lvl] + (code ? " " + code : "") + " · " : "") + L.st[n.status] + (n.owner ? " · " + n.owner : "") + (n.ref ? " · " + n.ref : "") + (n.at ? " · " + n.at : "") + (n.note ? "\n" + n.note : "");
+        if (n.kids.length) el.setAttribute("aria-expanded", String(n.open));
+        if (n.owner) {   // owner tag: a separate element, positioned under the node's right corner after layout
+          var ow = els[n.id + "-own"];
+          if (!ow) { ow = document.createElement("div"); ow.className = "wm-owner"; canvas.appendChild(ow); els[n.id + "-own"] = ow; }
+          ow.textContent = n.owner; ow.title = n.owner; seen[n.id + "-own"] = true;
+        }
+      }
+      visibleKids(n).forEach(walk);
+    })(DATA);
+    Object.keys(els).forEach(function (id) { if (!seen[id]) { els[id].remove(); delete els[id]; } });
+    // 2) measure and lay out: one column per depth, every chip in a column as wide as the widest one, generous gaps
+    var colW = [], GAP = [140, 130, 120, 110], VG = { 1: 30, 2: 22, 3: 18, 4: 16 }, PAD = 24;   // horizontal gap between columns, vertical gap per depth
+    Object.keys(els).forEach(function (id) { els[id].style.width = ""; });   // measure natural widths first
+    (function cols(n) { colW[n.depth] = Math.max(colW[n.depth] || 0, Math.ceil(els[n.id].getBoundingClientRect().width)); visibleKids(n).forEach(cols); })(DATA);   // ceil: a rounded-down width would clip the text
+    Object.keys(els).forEach(function (id) { var d = +els[id].dataset.depth; if (d > 0) els[id].style.width = colW[d] + "px"; });
+    function size(n) { var el = els[n.id]; return { w: el.offsetWidth, h: el.offsetHeight }; }
+    var colX = [PAD]; for (var d = 1; d < colW.length; d++) colX[d] = colX[d - 1] + colW[d - 1] + (GAP[d - 1] || 110);
+    var OWN_GAP = 3;   // space between a node and its owner tag
+    function tagH(n) { var ow = els[n.id + "-own"]; return ow ? ow.offsetHeight + OWN_GAP : 0; }
+    var cursor = PAD, pos = {};
+    (function place(n) {
+      var s = size(n), kids = visibleKids(n), extra = tagH(n);
+      if (!kids.length) { pos[n.id] = { x: colX[n.depth], y: cursor, w: s.w, h: s.h }; cursor += s.h + extra + (VG[n.depth] || 10); return; }
+      kids.forEach(place);
+      var a = pos[kids[0].id], b = pos[kids[kids.length - 1].id];
+      var mid = (a.y + a.h / 2 + b.y + b.h / 2) / 2;
+      var y = Math.max(mid - s.h / 2, n.depth ? 0 : PAD);
+      pos[n.id] = { x: colX[n.depth], y: y, w: s.w, h: s.h };
+      if (y + s.h + extra > cursor) cursor = y + s.h + extra + (VG[n.depth] || 10);
+    })(DATA);
+    var W = 0, H = 0;
+    Object.keys(pos).forEach(function (id) {
+      var p = pos[id], el = els[id], ow = els[id + "-own"];
+      el.style.left = p.x + "px"; el.style.top = p.y + "px"; W = Math.max(W, p.x + p.w); H = Math.max(H, p.y + p.h);
+      if (ow) { ow.style.left = Math.max(p.x, p.x + p.w - ow.offsetWidth) + "px"; ow.style.top = (p.y + p.h + OWN_GAP) + "px"; H = Math.max(H, p.y + p.h + OWN_GAP + ow.offsetHeight); }
+    });
+    canvas.style.width = (W + PAD) + "px"; canvas.style.height = (H + PAD) + "px";
+    links.setAttribute("width", W + PAD); links.setAttribute("height", H + PAD);
+    // 3) connectors: right-angle elbows with a small radius, one thin colour; they stop LINK_GAP px short of both nodes
+    var out = [], R = 6, LINK_GAP = 10;
+    (function draw(n) {
+      var p = pos[n.id];
+      visibleKids(n).forEach(function (k) {
+        var c = pos[k.id];
+        var px = p.x + p.w + LINK_GAP, py = p.y + p.h / 2;
+        var cx = c.x - LINK_GAP, cy = c.y + c.h / 2, mx = c.x - (GAP[k.depth - 1] || 110) / 2;
+        var dy = cy - py, s = dy < 0 ? -1 : 1, r = Math.max(0, Math.min(R, Math.abs(dy) / 2, mx - px, cx - mx)), d;
+        if (Math.abs(dy) < 1) d = "M" + px + " " + py + " H" + cx;
+        else d = "M" + px + " " + py + " H" + (mx - r) + " Q" + mx + " " + py + " " + mx + " " + (py + s * r) + " V" + (cy - s * r) + " Q" + mx + " " + cy + " " + (mx + r) + " " + cy + " H" + cx;
+        out.push('<path d="' + d + '" fill="none" stroke="var(--wm-line)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"' + (k.more ? ' stroke-dasharray="3 3"' : "") + "/>");
+        draw(k);
+      });
+    })(DATA);
+    links.innerHTML = out.join("");
+    prevIds.__init = true;
+  }
+
+  canvas.addEventListener("click", function (e) {
+    var el = e.target.closest(".wm-node"); if (!el) return;
+    var id = el.dataset.id;
+    if (/-more$/.test(id)) { var owner = nodes.filter(function (n) { return n.id === id.replace(/-more$/, ""); })[0]; owner.showAll = !owner.showAll; render(); return; }
+    var n = nodes.filter(function (x) { return x.id === id; })[0];
+    if (n && n.kids.length && n.depth > 0) { n.open = !n.open; render(); els[id] && els[id].focus(); }
+  });
+  $("wm-open").addEventListener("click", function () { nodes.forEach(function (n) { n.open = true; n.showAll = true; }); render(); });
+  $("wm-fold").addEventListener("click", function () { nodes.forEach(function (n) { n.open = n.depth < 1; n.showAll = false; }); render(); });
+  // Full screen: only the map card. Hidden where the browser does not allow it (some embedded viewers).
+  var card = $("wm-card"), fullBtn = $("wm-full");
+  function fullLabel() { fullBtn.textContent = document.fullscreenElement === card ? L.unfull : L.full; }
+  fullBtn.addEventListener("click", function () {
+    if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen(); return; }
+    if (card.requestFullscreen) { var p = card.requestFullscreen(); if (p && p.catch) p.catch(function () {}); }
+  });
+  document.addEventListener("fullscreenchange", function () { fullLabel(); render(); });
+  if (!document.fullscreenEnabled || !card.requestFullscreen) fullBtn.hidden = true;
+  fullLabel();
+  // Light / dark: one choice for every page in docs/ (the workdocs pages read and write the same localStorage key)
+  var themeBtn = $("wm-theme"), rootEl = document.documentElement;
+  themeBtn.setAttribute("aria-label", L.theme); themeBtn.title = L.theme;
+  function isDark() { var t = rootEl.getAttribute("data-theme"); if (t) return t === "dark"; return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches); }
+  themeBtn.addEventListener("click", function () {
+    var next = isDark() ? "light" : "dark";
+    rootEl.setAttribute("data-theme", next);
+    try { localStorage.setItem("docs-theme", next); } catch (e) { /* file:// or blocked storage: the choice lasts for this page */ }
+  });
+  var navIn = document.querySelector(".topnav .in");
+  if (navIn) { themeBtn.className = "theme"; navIn.appendChild(themeBtn); }
+  render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render); // re-measure once fonts are in
+  window.addEventListener("resize", function () { clearTimeout(window.__wmT); window.__wmT = setTimeout(render, 150); });
+})();
+</script>
+</body>
+</html>
